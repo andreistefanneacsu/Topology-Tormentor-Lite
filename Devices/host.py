@@ -10,7 +10,6 @@ class Host:
         
         self._x = 0
         self._y = 0
-        
         self.mac = "00:00:00:00:00:00" 
         
         self.config = {
@@ -35,7 +34,6 @@ class Host:
                 intf.ip, intf.subnet = parts[1], parts[2]
                 if len(parts) >= 4: self.config["default-gateway"] = parts[3]
                 return "\nIP Configuration updated.\n"
-            
             elif len(parts) == 2 and parts[1].lower() == "/renew":
                 return "Requesting IP via DHCP...\n"
             
@@ -50,6 +48,19 @@ class Host:
 
         elif cmd == "ping":
             return f"$PING:{parts[1]}$" if len(parts) > 1 else "Usage: ping <ip>\n"
+            
+        elif cmd == "ssh":
+            if len(parts) >= 4 and parts[1] == "-l":
+                user = parts[2]
+                ip = parts[3]
+                return f"\nConnecting to {ip} via SSH...\nPassword: \n"
+            return "Usage: ssh -l <username> <ip>\n"
+            
+        elif cmd == "telnet":
+            if len(parts) >= 2:
+                ip = parts[1]
+                return f"\nTrying {ip}...\nConnected to {ip}.\nUser Access Verification\nPassword: "
+            return "Usage: telnet <ip>\n"
 
         return f"'{parts[0]}' is not recognized as an internal or external command.\n"
 

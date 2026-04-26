@@ -7,9 +7,10 @@ class Interface:
         self.ip = ""
         self.subnet = ""
         self.description = "atentiune!"
-        self.is_up = True  # Statusul administrativ (shutdown/no shutdown)
+        self.is_up = True
         self.speed = self._determine_speed(name)
         self.mac = self._generate_mac() if not is_console else ""
+        self.ip_helper_address = "" # Adaugat pentru DHCP Relay
 
     def _determine_speed(self, name):
         n = name.lower()
@@ -31,7 +32,8 @@ class Interface:
             "is_up": self.is_up,
             "mac": self.mac,
             "speed": self.speed,
-            "is_console": self.is_console
+            "is_console": self.is_console,
+            "ip_helper_address": self.ip_helper_address
         }
 
     def from_dict(self, data):
@@ -42,3 +44,4 @@ class Interface:
         self.mac = data.get("mac", self.mac)
         self.speed = data.get("speed", self.speed)
         self.is_console = data.get("is_console", self.is_console)
+        self.ip_helper_address = data.get("ip_helper_address", "")
