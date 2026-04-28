@@ -3,12 +3,12 @@ from PyQt6.QtWidgets import QGraphicsView, QGraphicsScene, QGraphicsItem, QGraph
 from PyQt6.QtGui import QPen, QBrush, QColor, QPainter, QPainterPath, QFont, QLinearGradient
 from PyQt6.QtCore import Qt, pyqtSignal, QRectF, QPointF
 
-from Devices.pc import PC
-from Devices.laptop import Laptop
-from Devices.router2911 import Router2911
-from Devices.switch2960 import Switch2960
-from Devices.interface import Interface
-from Devices.link import Link
+from ..Devices.pc import PC
+from ..Devices.laptop import Laptop
+from ..Devices.router2911 import Router2911
+from ..Devices.switch2960 import Switch2960
+from ..Devices.interface import Interface
+from ..Devices.link import Link
 
 class CableNode(QGraphicsPathItem):
     def __init__(self, node1, node2, cable_type):
