@@ -1,5 +1,5 @@
-from host import Host
-from interface import Interface
+from Devices.host import Host
+from Devices.interface import Interface
 
 class Laptop(Host):
     def __init__(self, name):

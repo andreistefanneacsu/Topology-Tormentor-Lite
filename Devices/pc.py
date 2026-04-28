@@ -1,4 +1,4 @@
-from host import Host
+from Devices.host import Host
 
 class PC(Host):
     def __init__(self, name):

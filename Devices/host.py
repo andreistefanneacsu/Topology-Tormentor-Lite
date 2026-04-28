@@ -1,5 +1,5 @@
 import uuid
-from interface import Interface
+from Devices.interface import Interface
 
 class Host:
     def __init__(self, name, host_type="Host"):

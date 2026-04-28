@@ -1,5 +1,5 @@
-from devices import Device
-from interface import Interface
+from Devices.devices import Device
+from Devices.interface import Interface
 
 class Switch2960(Device):
     def __init__(self, name):

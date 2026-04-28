@@ -4,10 +4,10 @@ from PyQt6.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
 from PyQt6.QtGui import QColor, QBrush, QAction, QIcon, QPixmap
 from PyQt6.QtCore import Qt, QTime, QTimer, QSize
 
-from ip_config import IPConfigWidget
+from GUI.ip_config import IPConfigWidget
 from GUI.cmd_app import CmdWidget
 from GUI.cli_app import CLIWidget
-from notepad import NotepadWidget
+from GUI.notepad import NotepadWidget
 from GUI.calculator import CalculatorWidget
 
 class DesktopEnvironment(QMainWindow):
@@ -26,7 +26,7 @@ class DesktopEnvironment(QMainWindow):
 
         self.mdi = QMdiArea()
         
-        bg_path = os.path.join("icons", "bg.jpg")
+        bg_path = os.path.join("GUI", "bg.jpg")
         
         if os.path.exists(bg_path):
             pixmap = QPixmap(bg_path).scaled(
@@ -50,7 +50,7 @@ class DesktopEnvironment(QMainWindow):
         self.start_btn = QPushButton() 
         self.start_btn.setFixedSize(100, 35)
         
-        start_icon_path = os.path.join("icons", "start.png")
+        start_icon_path = os.path.join("GUI", "icons", "start.png")
         if os.path.exists(start_icon_path):
             self.start_btn.setIcon(QIcon(start_icon_path))
             self.start_btn.setIconSize(QSize(100, 35)) 
@@ -63,7 +63,6 @@ class DesktopEnvironment(QMainWindow):
                 padding: 0px;
             }
             QPushButton:pressed { 
-                /* Slight shift when clicked to feel like a real button */
                 margin-top: 1px; 
                 margin-left: 1px;
             }
@@ -93,7 +92,7 @@ class DesktopEnvironment(QMainWindow):
         self.time_label.setText(QTime.currentTime().toString("hh:mm A"))
 
     def load_icon(self, filename):
-        path = os.path.join("icons", filename)
+        path = os.path.join("GUI", "icons", filename)
         if os.path.exists(path):
             return QIcon(path)
         return QIcon()
