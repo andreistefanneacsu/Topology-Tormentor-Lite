@@ -25,7 +25,7 @@ jobs:
         cache: 'pip'
 
     - name: Install Linux dependencies for PyQt6
-      run: sudo apt-get update && sudo apt-get install -y xvfb libegl1
+      run: sudo apt-get update && sudo apt-get install -y xvfb libegl1 libxcb-cursor0 libxkbcommon-x11-0
 
     - name: Install Python dependencies
       run: |
@@ -36,4 +36,6 @@ jobs:
       run: pip install -e .
 
     - name: Run tests with a virtual display
+      env:
+        QT_QPA_PLATFORM: offscreen
       run: xvfb-run pytest
