@@ -27,7 +27,7 @@ class Device:
                 "con 0": {"password": "", "timeout": "0 0"},
                 "vty 0 15": {"password": "", "timeout": "0 0", "transport_input": ["all"]}
             },
-            "users": {},
+            "users": {}, 
             "rsa_key_bits": 0,
             "logging_host": "",
             "service_timestamps_log": False,
@@ -42,7 +42,7 @@ class Device:
         self.cli_mode = 0
         self.cli_prompt_pending = None
         self.current_interface = None
-        self.current_line = None 
+        self.current_line = None
 
     def to_dict(self):
         intf_export = {}
@@ -87,7 +87,6 @@ class Device:
                 json.dump(self.to_dict(), f, indent=4)
             return True
         except Exception as e:
-            print(f"Error saving file: {e}")
             return False
 
     def load_device_state(self):
@@ -100,31 +99,38 @@ class Device:
             self.from_dict(data)
             return True
         except Exception as e:
-            print(f"Error loading file: {e}")
             return False
 
     def get_prompt(self):
         if self.cli_prompt_pending:
             return self.cli_prompt_pending
             
-        if self.cli_mode == 0:
-            return f"{self.hostname}>"
-        elif self.cli_mode == 1:
-            return f"{self.hostname}#"
-        elif self.cli_mode == 2:
-            return f"{self.hostname}(config)#"
-        elif self.cli_mode == 3:
-            return f"{self.hostname}(config-line)#"
-        elif self.cli_mode == 4:
-            return f"{self.hostname}(config-if)#"
+        if self.cli_mode == 0: return f"{self.hostname}>"
+        elif self.cli_mode == 1: return f"{self.hostname}#"
+        elif self.cli_mode == 2: return f"{self.hostname}(config)#"
+        elif self.cli_mode == 3: return f"{self.hostname}(config-line)#"
+        elif self.cli_mode == 4: return f"{self.hostname}(config-if)#"
         return f"{self.hostname}>"
 
     def _handle_unknown_command(self, cmd):
-        """Simuleaza comportamentul DNS lookup cand se greseste o comanda"""
         if self.config.get("ip_domain_lookup", True):
             time.sleep(2)
             return f"Translating \"{cmd}\"...domain server (255.255.255.255)\n% Unknown command or computer name, or unable to find computer address\n"
         return f"% Invalid input detected at '^' marker.\n"
+
+    def _resolve_interface(self, name_parts):
+        """Magically converts 'g0/0' to 'gigabitEthernet 0/0'"""
+        raw = "".join(name_parts).lower()
+        for actual in self.interfaces.keys():
+            clean = actual.lower().replace(" ", "")
+            if clean.startswith(raw) or clean == raw:
+                return actual
+
+            if raw.startswith('g') and 'gigabit' in clean and clean.endswith(raw[1:]): return actual
+            if raw.startswith('f') and 'fast' in clean and clean.endswith(raw[1:]): return actual
+            if raw.startswith('s') and 'serial' in clean and clean.endswith(raw[1:]): return actual
+            
+        return None
 
     def process_command(self, cmd_line):
         cmd = cmd_line.strip()
@@ -149,20 +155,17 @@ class Device:
         action_parts = parts[1:] if is_no else parts
         action = action_parts[0].lower() if action_parts else ""
 
-
         if first in ("exit", "ex"):
             if self.cli_mode in (3, 4): self.cli_mode = 2; self.current_line = None; self.current_interface = None
             elif self.cli_mode == 2: self.cli_mode = 1
             elif self.cli_mode == 1: self.cli_mode = 0
             return ""
 
-
         if self.cli_mode == 0:
             if first.startswith("en"):
                 self.cli_mode = 1
                 return ""
             return self._handle_unknown_command(first)
-
 
         elif self.cli_mode == 1:
             if first.startswith("conf"):
@@ -179,7 +182,6 @@ class Device:
                         return "Destination filename [running-config]? \nLoading configuration...\n[OK]\n" if self.load_device_state() else "%Error loading\n"
                 return "% Incomplete command.\n"
             return self._handle_unknown_command(first)
-
 
         elif self.cli_mode == 2: 
             if action.startswith("host") and len(action_parts) > 1:
@@ -208,14 +210,11 @@ class Device:
                     return ""
                     
             elif action == "enable" and len(action_parts) >= 3:
-                if action_parts[1] == "secret":
-                    self.config["enable_secret"] = "" if is_no else action_parts[2]
-                elif action_parts[1] == "password":
-                    self.config["enable_password"] = "" if is_no else action_parts[2]
+                if action_parts[1] == "secret": self.config["enable_secret"] = "" if is_no else action_parts[2]
+                elif action_parts[1] == "password": self.config["enable_password"] = "" if is_no else action_parts[2]
                 return ""
                 
             elif action == "banner" and len(action_parts) >= 3:
-
                 banner_type = action_parts[1]
                 text = " ".join(action_parts[2:]).strip('^#*"') 
                 if banner_type == "motd": self.config["banner_motd"] = "" if is_no else text
@@ -242,7 +241,7 @@ class Device:
             elif action == "line":
                 if len(action_parts) >= 3:
                     line_type = action_parts[1] + " " + action_parts[2] 
-                    if "vty" in line_type: line_type = "vty 0 15"
+                    if "vty" in line_type: line_type = "vty 0 15" 
                     if line_type in self.config["lines"]:
                         self.cli_mode = 3
                         self.current_line = line_type
@@ -257,7 +256,7 @@ class Device:
                     self.cli_prompt_pending = "How many bits in the modulus [512]: "
                     return ""
 
-            elif action == "logging" and len(action_parts) == 2:
+            elif action == "logging" and len(action_parts) == 2: 
                 self.config["logging_host"] = "" if is_no else action_parts[1]
                 return ""
 
@@ -286,9 +285,13 @@ class Device:
                 return ""
 
             elif action.startswith("int") and len(action_parts) > 1:
-                self.cli_mode = 4
-                self.current_interface = " ".join(action_parts[1:]) 
-                return ""
+                resolved = self._resolve_interface(action_parts[1:])
+                if resolved:
+                    self.cli_mode = 4
+                    self.current_interface = resolved
+                    return ""
+                else:
+                    return "% Invalid interface type and number\n"
             else:
                 return f"% Invalid input detected at '^' marker.\n"
 
@@ -341,7 +344,7 @@ class Device:
                 return ""
                 
             elif action in ("shutdown",):
-                is_up = is_no
+                is_up = is_no 
                 if self.current_interface and self.current_interface in self.interfaces:
                     intf = self.interfaces[self.current_interface]
                     if hasattr(intf, 'is_up'):
@@ -349,8 +352,12 @@ class Device:
                 return ""
 
             elif action.startswith("int") and len(action_parts) > 1:
-                self.current_interface = " ".join(action_parts[1:])
-                return ""
+                resolved = self._resolve_interface(action_parts[1:])
+                if resolved:
+                    self.current_interface = resolved
+                    return ""
+                else:
+                    return "% Invalid interface type and number\n"
             else:
                 return f"% Invalid input detected at '^' marker.\n"
 
