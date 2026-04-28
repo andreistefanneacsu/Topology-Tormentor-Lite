@@ -10,3 +10,4 @@ dependencies = []
 
 [tool.setuptools]
 packages = ["Devices","GUI"]
+py-modules = ["simulator", "main"]
