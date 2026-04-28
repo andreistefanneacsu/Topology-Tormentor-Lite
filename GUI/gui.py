@@ -134,10 +134,3 @@ class MainWindow(QMainWindow):
                     self.canvas.scene.addItem(cable)
 
         self.status.showMessage("Topology loaded successfully.")
-
-if __name__ == '__main__':
-    app = QApplication(sys.argv)
-    app.setStyleSheet(MODERN_STYLE)
-    window = MainWindow()
-    window.show()
-    sys.exit(app.exec())
