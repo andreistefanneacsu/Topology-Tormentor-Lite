@@ -3,3 +3,4 @@ __pycache__/
 Tests/__pycache__/
 Devices/__pycache__/
 GUI/__pycache__/
+topology_tormentor.egg-info/
