@@ -3,7 +3,7 @@ import json
 from PyQt6.QtWidgets import QApplication, QMainWindow, QToolBar, QStatusBar, QFileDialog
 from PyQt6.QtGui import QAction
 from PyQt6.QtCore import Qt
-from canvas import NetworkCanvas, DeviceNode, CableNode
+from GUI.canvas import NetworkCanvas, DeviceNode, CableNode
 
 from Devices.pc import PC
 from Devices.laptop import Laptop

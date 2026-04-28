@@ -4,10 +4,10 @@ from PyQt6.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
 from PyQt6.QtGui import QColor, QBrush, QAction, QIcon, QPixmap
 from PyQt6.QtCore import Qt, QTime, QTimer, QSize
 
-from ip_config import IPConfigWidget
+from GUI.ip_config import IPConfigWidget
 from GUI.cmd_app import CmdWidget
 from GUI.cli_app import CLIWidget
-from notepad import NotepadWidget
+from GUI.notepad import NotepadWidget
 from GUI.calculator import CalculatorWidget
 
 class DesktopEnvironment(QMainWindow):

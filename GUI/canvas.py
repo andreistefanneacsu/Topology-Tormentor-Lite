@@ -9,6 +9,8 @@ from Devices.router2911 import Router2911
 from Devices.switch2960 import Switch2960
 from Devices.interface import Interface
 from Devices.link import Link
+from GUI.desktop import DesktopEnvironment
+from GUI.cli_app import CLIWidget
 
 class CableNode(QGraphicsPathItem):
     def __init__(self, node1, node2, cable_type):
@@ -135,11 +137,10 @@ class DeviceNode(QGraphicsItem):
     def mouseDoubleClickEvent(self, event):
         if self.canvas.current_mode == 'select':
             if self.device.type in ["PC", "Laptop"]:
-                from desktop import DesktopEnvironment
                 self.os_window = DesktopEnvironment(self.device, self.canvas)
                 self.os_window.show()
             else:
-                from cli_app import CLIWidget
+                
                 from PyQt6.QtWidgets import QDialog, QVBoxLayout
                 dlg = QDialog()
                 dlg.setWindowTitle(f"CLI - {self.device.name}")
