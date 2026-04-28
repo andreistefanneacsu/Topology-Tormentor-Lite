@@ -18,7 +18,6 @@ class CableNode(QGraphicsPathItem):
         self.cable_type = cable_type
         self.setZValue(-1) 
         
-        # Make the cable selectable so we can delete it!
         self.setFlag(QGraphicsItem.GraphicsItemFlag.ItemIsSelectable)
         self.update_path()
 
@@ -50,7 +49,6 @@ class CableNode(QGraphicsPathItem):
 
     def paint(self, painter, option, widget):
         pen = QPen(self.pen())
-        # Add a glow if the user selects the cable
         if self.isSelected():
             pen.setColor(QColor("#F9E2AF")) 
             pen.setWidth(6)
@@ -191,13 +189,11 @@ class NetworkCanvas(QGraphicsView):
     def remove_cable_node(self, cable_node):
         if cable_node not in self.scene.items(): return
 
-        # 1. Disconnect console internally if necessary
         if cable_node.cable_type == "Console":
             laptop = cable_node.node1.device if cable_node.node1.device.type == "Laptop" else cable_node.node2.device
             if hasattr(laptop, 'disconnect_serial'):
                 laptop.disconnect_serial()
 
-        # 2. Find and remove backend link object
         link_to_remove = None
         for link in self.links:
             match_1 = (link.interface1["device_id"] == cable_node.node1.device.id and link.interface2["device_id"] == cable_node.node2.device.id)
@@ -209,14 +205,12 @@ class NetworkCanvas(QGraphicsView):
         if link_to_remove:
             self.links.remove(link_to_remove)
 
-        # 3. Visually remove from canvas
         self.scene.removeItem(cable_node)
         self.status_message.emit("Cable deleted.")
 
     def remove_device_node(self, device_node):
         if device_node not in self.scene.items(): return
 
-        # 1. Destroy attached cables first to prevent ghost lines
         attached_cables = []
         for item in self.scene.items():
             if isinstance(item, CableNode):
@@ -226,11 +220,9 @@ class NetworkCanvas(QGraphicsView):
         for cable in attached_cables:
             self.remove_cable_node(cable)
 
-        # 2. Remove backend device tracking
         if device_node.device in self.devices:
             self.devices.remove(device_node.device)
 
-        # 3. Visually remove from canvas
         self.scene.removeItem(device_node)
         self.status_message.emit(f"Device {device_node.device.name} deleted.")
 

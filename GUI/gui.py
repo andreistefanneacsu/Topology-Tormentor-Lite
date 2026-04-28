@@ -3,7 +3,7 @@ import json
 from PyQt6.QtWidgets import QApplication, QMainWindow, QToolBar, QStatusBar, QFileDialog
 from PyQt6.QtGui import QAction
 from PyQt6.QtCore import Qt
-from GUI.canvas import NetworkCanvas, DeviceNode, CableNode
+from canvas import NetworkCanvas, DeviceNode, CableNode
 
 from Devices.pc import PC
 from Devices.laptop import Laptop
@@ -134,10 +134,3 @@ class MainWindow(QMainWindow):
                     self.canvas.scene.addItem(cable)
 
         self.status.showMessage("Topology loaded successfully.")
-
-if __name__ == '__main__':
-    app = QApplication(sys.argv)
-    app.setStyleSheet(MODERN_STYLE)
-    window = MainWindow()
-    window.show()
-    sys.exit(app.exec())
