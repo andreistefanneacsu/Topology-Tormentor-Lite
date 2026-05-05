@@ -7,6 +7,7 @@ from Devices.pc import PC
 from Devices.laptop import Laptop
 from Devices.router2911 import Router2911
 from Devices.switch2960 import Switch2960
+from Devices.server import Server
 from Devices.interface import Interface
 from Devices.link import Link
 from GUI.desktop import DesktopEnvironment
@@ -123,6 +124,16 @@ class DeviceNode(QGraphicsItem):
             painter.setBrush(QBrush(QColor("#CDD6F4")))
             painter.drawPolygon(QPointF(-35, 15), QPointF(35, 15), QPointF(45, 25), QPointF(-45, 25))
 
+        elif self.device.type == "Server":
+            painter.setBrush(QBrush(QColor("#313244")))
+            painter.drawRoundedRect(-20, -40, 40, 70, 3, 3)
+            painter.setBrush(QBrush(QColor("#A6E3A1")))
+            painter.drawRect(-10, -30, 20, 5)
+            painter.setBrush(QBrush(QColor("#89B4FA")))
+            painter.drawRect(-10, -20, 20, 5)
+            painter.setBrush(QBrush(QColor("#F9E2AF")))
+            painter.drawRect(-10, -10, 20, 5)
+
         painter.setPen(QPen(QColor("#CDD6F4")))
         painter.setFont(QFont("Segoe UI", 10, QFont.Weight.Bold))
         painter.drawText(QRectF(-50, 35, 100, 20), Qt.AlignmentFlag.AlignCenter, self.device.name)
@@ -136,7 +147,7 @@ class DeviceNode(QGraphicsItem):
 
     def mouseDoubleClickEvent(self, event):
         if self.canvas.current_mode == 'select':
-            if self.device.type in ["PC", "Laptop"]:
+            if self.device.type in ["PC", "Laptop", "Server"]:
                 self.os_window = DesktopEnvironment(self.device, self.canvas)
                 self.os_window.show()
             else:
@@ -260,7 +271,7 @@ class NetworkCanvas(QGraphicsView):
             super().mousePressEvent(event)
 
     def add_device(self, pos):
-        dev_map = {"PC": PC, "Laptop": Laptop, "Router": Router2911, "Switch": Switch2960}
+        dev_map = {"PC": PC, "Laptop": Laptop, "Server": Server, "Router": Router2911, "Switch": Switch2960}
         dev_class = dev_map.get(self.selected_item_type)
         if dev_class:
             num = len([d for d in self.devices if d.type == self.selected_item_type]) + 1
