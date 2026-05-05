@@ -33,7 +33,6 @@ class Router2911(Device):
         
         cmd_lower = [p.lower() for p in action_parts]
 
-        # --- Modul Global Config ---
         if self.cli_mode == 2:
             if cmd_lower[0:3] == ["ip", "dhcp", "excluded-address"] and len(action_parts) >= 4:
                 exclusion = action_parts[3] + (" " + action_parts[4] if len(action_parts) > 4 else "")
@@ -68,14 +67,12 @@ class Router2911(Device):
                         self.config["routes"].append(route)
                 return ""
 
-        # --- Modul DHCP Config ---
         elif self.cli_mode == 5:
             if cmd_lower[0] == "exit":
                 self.cli_mode = 2
                 self.current_dhcp_pool = None
                 return ""
             
-            # Nu vom detalia stergerea parametrilor din pool cu no pentru simplificare
             if cmd_lower[0] == "default-router" and len(action_parts) >= 2:
                 self.config["dhcp_pools"][self.current_dhcp_pool]["default-router"] = "" if is_no else action_parts[1]
                 return ""
@@ -95,6 +92,65 @@ class Router2911(Device):
             self.current_dhcp_pool = None
             
         return output
+
+    def allocate_ip(self, device_id, helper_ip=None):
+        import ipaddress
+        excluded = set()
+        for excl in self.config.get("dhcp_excluded", []):
+            parts = excl.split()
+            try:
+                if len(parts) == 1:
+                    excluded.add(str(ipaddress.IPv4Address(parts[0])))
+                elif len(parts) == 2:
+                    start = int(ipaddress.IPv4Address(parts[0]))
+                    end = int(ipaddress.IPv4Address(parts[1]))
+                    for i in range(start, end + 1):
+                        excluded.add(str(ipaddress.IPv4Address(i)))
+            except Exception:
+                pass
+                
+        pools = self.config.get("dhcp_pools", {})
+        selected_pool = None
+        for p_name, p_data in pools.items():
+            net = p_data.get("network")
+            mask = p_data.get("mask")
+            if not net or not mask: continue
+            try:
+                network = ipaddress.IPv4Network(f"{net}/{mask}", strict=False)
+                if helper_ip and ipaddress.IPv4Address(helper_ip) in network:
+                    selected_pool = p_data
+                    break
+            except Exception:
+                pass
+                
+        if not selected_pool:
+            return None
+            
+        try:
+            network = ipaddress.IPv4Network(f"{selected_pool['network']}/{selected_pool['mask']}", strict=False)
+        except Exception:
+            return None
+            
+        if "dhcp_leases" not in self.config:
+            self.config["dhcp_leases"] = {}
+            
+        existing = self.config["dhcp_leases"].get(device_id)
+        if existing:
+            return existing["ip"], selected_pool
+            
+        used_ips = {v["ip"] for v in self.config["dhcp_leases"].values()}
+        
+        for ip in network.hosts():
+            ip_str = str(ip)
+            if ip_str not in excluded and ip_str not in used_ips and ip_str != selected_pool.get("default-router"):
+                self.config["dhcp_leases"][device_id] = {"ip": ip_str, "gateway": selected_pool.get("default-router", "")}
+                return ip_str, selected_pool
+                
+        return None
+
+    def release_ip(self, device_id):
+        if "dhcp_leases" in self.config:
+            self.config["dhcp_leases"].pop(device_id, None)
 
     def to_dict(self):
         data = super().to_dict()
