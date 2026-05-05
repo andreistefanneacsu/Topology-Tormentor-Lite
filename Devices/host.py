@@ -13,7 +13,16 @@ class Host:
         self.mac = "00:00:00:00:00:00" 
         
         self.config = {
-            "default-gateway": ""
+            "default-gateway": "",
+            "dns-server": "",
+            "email_client": {
+                "name": "",
+                "email": "",
+                "incoming_server": "",
+                "outgoing_server": "",
+                "username": "",
+                "password": ""
+            }
         }
         
         self.interfaces = {
@@ -33,18 +42,21 @@ class Host:
                 intf = self.interfaces["FastEthernet0"]
                 intf.ip, intf.subnet = parts[1], parts[2]
                 if len(parts) >= 4: self.config["default-gateway"] = parts[3]
+                if len(parts) >= 5: self.config["dns-server"] = parts[4]
                 return "\nIP Configuration updated.\n"
             elif len(parts) == 2 and parts[1].lower() == "/renew":
                 return "Requesting IP via DHCP...\n"
             
             intf = self.interfaces["FastEthernet0"]
             gw = self.config.get("default-gateway", "0.0.0.0")
+            dns = self.config.get("dns-server", "0.0.0.0")
             status = "Up" if intf.is_up else "Down"
             
             return (f"\nFastEthernet0 Connection (Status: {status}):\n"
                     f"   IPv4 Address. . . : {intf.ip or '0.0.0.0'}\n"
                     f"   Subnet Mask . . . : {intf.subnet or '0.0.0.0'}\n"
-                    f"   Default Gateway . : {gw or '0.0.0.0'}\n")
+                    f"   Default Gateway . : {gw or '0.0.0.0'}\n"
+                    f"   DNS Server. . . . : {dns or '0.0.0.0'}\n")
 
         elif cmd == "ping":
             return f"$PING:{parts[1]}$" if len(parts) > 1 else "Usage: ping <ip>\n"
