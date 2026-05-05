@@ -1,4 +1,6 @@
+from PyQt6.QtWidgets import QWidget, QVBoxLayout, QTabWidget, QGridLayout, QLineEdit, QTextEdit, QPushButton, QMessageBox, QListWidget, QLabel, QGroupBox
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QTabWidget, QFormLayout, QLineEdit, QTextEdit, QPushButton, QMessageBox, QListWidget, QLabel
+
 from PyQt6.QtCore import Qt
 from simulator import NetworkSimulator
 
@@ -24,6 +26,7 @@ class EmailClientWidget(QWidget):
 
     def setup_config_tab(self):
         tab = QWidget()
+        layout = QVBoxLayout(tab)
         layout = QFormLayout(tab)
         
         cfg = self.host.config.get("email_client", {})
@@ -36,6 +39,32 @@ class EmailClientWidget(QWidget):
         self.pass_input = QLineEdit(cfg.get("password", ""))
         self.pass_input.setEchoMode(QLineEdit.EchoMode.Password)
         
+        group = QGroupBox("Account Settings")
+        group.setStyleSheet("QGroupBox { font-weight: bold; border: 1px solid #7F9DB9; border-radius: 4px; margin-top: 12px; } QGroupBox::title { subcontrol-origin: margin; left: 10px; padding: 0 3px; }")
+        group_layout = QVBoxLayout(group)
+        
+        form_layout = QGridLayout()
+        form_layout.setSpacing(8)
+        
+        for box in [self.name_input, self.email_input, self.inc_server_input, self.out_server_input, self.user_input, self.pass_input]:
+            box.setStyleSheet("background-color: white; border: 1px solid #7F9DB9; padding: 3px;")
+            box.setMinimumWidth(150)
+            
+        form_layout.addWidget(QLabel("Your Name:"), 0, 0, Qt.AlignmentFlag.AlignRight)
+        form_layout.addWidget(self.name_input, 0, 1)
+        form_layout.addWidget(QLabel("Email Address:"), 1, 0, Qt.AlignmentFlag.AlignRight)
+        form_layout.addWidget(self.email_input, 1, 1)
+        form_layout.addWidget(QLabel("Incoming Mail Server:"), 2, 0, Qt.AlignmentFlag.AlignRight)
+        form_layout.addWidget(self.inc_server_input, 2, 1)
+        form_layout.addWidget(QLabel("Outgoing Mail Server:"), 3, 0, Qt.AlignmentFlag.AlignRight)
+        form_layout.addWidget(self.out_server_input, 3, 1)
+        form_layout.addWidget(QLabel("User Name:"), 4, 0, Qt.AlignmentFlag.AlignRight)
+        form_layout.addWidget(self.user_input, 4, 1)
+        form_layout.addWidget(QLabel("Password:"), 5, 0, Qt.AlignmentFlag.AlignRight)
+        form_layout.addWidget(self.pass_input, 5, 1)
+        
+        group_layout.addLayout(form_layout)
+        layout.addWidget(group)
         for box in [self.name_input, self.email_input, self.inc_server_input, self.out_server_input, self.user_input, self.pass_input]:
             box.setStyleSheet("background-color: white; border: 1px solid #7F9DB9; padding: 2px;")
             
@@ -68,6 +97,19 @@ class EmailClientWidget(QWidget):
         tab = QWidget()
         layout = QVBoxLayout(tab)
         
+        form = QGridLayout()
+        form.setSpacing(8)
+        self.to_input = QLineEdit()
+        self.subject_input = QLineEdit()
+        for box in [self.to_input, self.subject_input]:
+            box.setStyleSheet("background-color: white; border: 1px solid #7F9DB9; padding: 3px;")
+            box.setMinimumWidth(150)
+            
+        form.addWidget(QLabel("To:"), 0, 0, Qt.AlignmentFlag.AlignRight)
+        form.addWidget(self.to_input, 0, 1)
+        form.addWidget(QLabel("Subject:"), 1, 0, Qt.AlignmentFlag.AlignRight)
+        form.addWidget(self.subject_input, 1, 1)
+
         form = QFormLayout()
         self.to_input = QLineEdit()
         self.subject_input = QLineEdit()

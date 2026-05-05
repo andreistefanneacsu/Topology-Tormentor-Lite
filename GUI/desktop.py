@@ -12,6 +12,8 @@ from GUI.calculator import CalculatorWidget
 from GUI.services_server_app import ServicesWidget
 from GUI.email_client_app import EmailClientWidget
 from GUI.web_browser_app import WebBrowserWidget
+from GUI.wifi_app import WifiAppWidget
+
 
 class DesktopEnvironment(QMainWindow):
     def __init__(self, device, canvas):
@@ -103,18 +105,20 @@ class DesktopEnvironment(QMainWindow):
     def setup_apps(self):
         self.available_apps = [
             {"name": "Command\nPrompt", "icon_file": "cmd.png", "factory": lambda: CmdWidget(self.device, self.canvas.devices, self.canvas.links)},
-            {"name": "IP Config", "icon_file": "settings.png", "factory": lambda: IPConfigWidget(self.device)},
+            {"name": "IP Config", "icon_file": "settings.png", "factory": lambda: IPConfigWidget(self.device, self.canvas.devices, self.canvas.links)},
             {"name": "Notepad", "icon_file": "notepad.png", "factory": NotepadWidget},
             {"name": "Calculator", "icon_file": "calculator.png", "factory": CalculatorWidget}
         ]
         if self.device.type in ["PC", "Laptop"]:
             self.available_apps.append({"name": "Email", "icon_file": "pc_email_unread.png", "factory": lambda: EmailClientWidget(self.device, self.canvas.devices, self.canvas.links)})
-            self.available_apps.append({"name": "Web\nBrowser", "icon_file": "services.png", "factory": lambda: WebBrowserWidget(self.device, self.canvas.devices, self.canvas.links)})
+            self.available_apps.append({"name": "Web\nBrowser", "icon_file": "browser.png", "factory": lambda: WebBrowserWidget(self.device, self.canvas.devices, self.canvas.links)})
         if self.device.type == "Server":
             self.available_apps.append({"name": "Services", "icon_file": "services.png", "factory": lambda: ServicesWidget(self.device)})
             
+
         if self.device.type == "Laptop":
             self.available_apps.append({"name": "Terminal", "icon_file": "terminal.png", "factory": lambda: CLIWidget(self.device)})
+            self.available_apps.append({"name": "WiFi App", "icon_file": "wireless.png", "factory": lambda: WifiAppWidget(self.device, self.canvas)})
 
     def setup_start_menu(self):
         self.start_menu = QMenu(self)

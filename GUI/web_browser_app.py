@@ -1,16 +1,17 @@
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLineEdit, QPushButton, QLabel,
-    QMessageBox, QFormLayout, QFrame, QTabWidget, QComboBox, QCheckBox,
+    QMessageBox, QGridLayout, QFrame, QTabWidget, QComboBox, QCheckBox,
     QSizePolicy
 )
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QFont
 from simulator import NetworkSimulator
 
+def _field(text="", password=False, width=220):
+    f = QLineEdit(text)
+    f.setMinimumSize(150, 24)
 
-# ---------------------------------------------------------------------------
-# Helpers
-# ---------------------------------------------------------------------------
+
 
 def _field(text="", password=False, width=220):
     f = QLineEdit(text)
@@ -29,6 +30,7 @@ def _combo(options, current=""):
     c.addItems(options)
     if current in options:
         c.setCurrentText(current)
+    c.setMinimumSize(150, 24)
     c.setFixedWidth(220)
     c.setStyleSheet(
         "background:#fff; border:1px solid #aaa; border-radius:3px;"
@@ -50,6 +52,15 @@ def _section_label(text):
 def _make_form(rows):
     """rows: list of (label_text, widget)"""
     w = QWidget()
+    form = QGridLayout(w)
+    form.setSpacing(10)
+    for i, (label_text, widget) in enumerate(rows):
+        lbl = QLabel(label_text)
+        lbl.setStyleSheet("font-size:12px;")
+        form.addWidget(lbl, i, 0, Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+        form.addWidget(widget, i, 1)
+    return w
+
     form = QFormLayout(w)
     form.setLabelAlignment(Qt.AlignmentFlag.AlignRight)
     form.setHorizontalSpacing(14)
@@ -60,11 +71,6 @@ def _make_form(rows):
         form.addRow(lbl, widget)
     return w
 
-
-# ---------------------------------------------------------------------------
-# Main Widget
-# ---------------------------------------------------------------------------
-
 class WebBrowserWidget(QWidget):
     def __init__(self, host_device, all_devices, all_links):
         super().__init__()
@@ -73,6 +79,7 @@ class WebBrowserWidget(QWidget):
         self.current_router = None
         self._logged_in = False
 
+        self.resize(850, 700)
         self.resize(700, 560)
         self.setWindowTitle("Web Browser")
         self.setStyleSheet(
@@ -83,7 +90,6 @@ class WebBrowserWidget(QWidget):
         root.setContentsMargins(0, 0, 0, 0)
         root.setSpacing(0)
 
-        # ── Address bar ──────────────────────────────────────────────────
         bar = QFrame()
         bar.setStyleSheet("background:#dce3ec; border-bottom:2px solid #7f9db9;")
         bar.setFixedHeight(40)
@@ -110,17 +116,12 @@ class WebBrowserWidget(QWidget):
 
         root.addWidget(bar)
 
-        # ── Content area ─────────────────────────────────────────────────
         self.content_area = QWidget()
         self.content_layout = QVBoxLayout(self.content_area)
         self.content_layout.setContentsMargins(0, 0, 0, 0)
         root.addWidget(self.content_area, stretch=1)
 
         self._show_welcome()
-
-    # ------------------------------------------------------------------
-    # Navigation
-    # ------------------------------------------------------------------
 
     def navigate(self):
         url = self.url_input.text().strip()
@@ -164,10 +165,6 @@ class WebBrowserWidget(QWidget):
                 f"Connected to {target_dev.name}, but this device does not serve a web page."
             )
 
-    # ------------------------------------------------------------------
-    # Screens
-    # ------------------------------------------------------------------
-
     def _clear(self):
         while self.content_layout.count():
             item = self.content_layout.takeAt(0)
@@ -188,9 +185,7 @@ class WebBrowserWidget(QWidget):
         lbl.setWordWrap(True)
         lbl.setStyleSheet("color:#c00; font-size:13px; margin:60px 30px;")
         self.content_layout.addWidget(lbl)
-
-    # ── Login ───────────────────────────────────────────────────────────
-
+        
     def _show_login(self):
         self._clear()
 
@@ -208,8 +203,9 @@ class WebBrowserWidget(QWidget):
         cv.setContentsMargins(28, 24, 28, 24)
         cv.setSpacing(14)
 
-        # Logo / header
-        header = QLabel("🌐  Router Login")
+        header = QLabel("Router Login")
+
+        header = QLabel("Router Login")
         header.setAlignment(Qt.AlignmentFlag.AlignCenter)
         header.setStyleSheet(
             "font-size:18px; font-weight:bold; color:#1a4a8a;"
@@ -222,6 +218,16 @@ class WebBrowserWidget(QWidget):
         sub.setStyleSheet("color:#888; margin-bottom:4px;")
         cv.addWidget(sub)
 
+        form = QGridLayout()
+        form.setSpacing(10)
+
+        self._login_user = _field()
+        self._login_pass = _field(password=True)
+
+        form.addWidget(QLabel("Username:"), 0, 0, Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+        form.addWidget(self._login_user, 0, 1)
+        form.addWidget(QLabel("Password:"), 1, 0, Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+        form.addWidget(self._login_pass, 1, 1)
         form = QFormLayout()
         form.setHorizontalSpacing(10)
         form.setVerticalSpacing(10)
@@ -266,8 +272,6 @@ class WebBrowserWidget(QWidget):
             self._login_pass.clear()
             self._login_pass.setFocus()
 
-    # ── Router config UI ────────────────────────────────────────────────
-
     def _show_router_ui(self):
         self._clear()
 
@@ -278,7 +282,6 @@ class WebBrowserWidget(QWidget):
         rv.setContentsMargins(0, 0, 0, 0)
         rv.setSpacing(0)
 
-        # Top banner
         banner = QLabel(f"  Wireless Router  ·  {r.name}")
         banner.setFixedHeight(36)
         banner.setStyleSheet(
@@ -302,8 +305,6 @@ class WebBrowserWidget(QWidget):
         rv.addWidget(tabs)
         self.content_layout.addWidget(root)
 
-    # ── Tab: Setup ──────────────────────────────────────────────────────
-
     def _tab_setup(self, r):
         page = QWidget()
         pv = QVBoxLayout(page)
@@ -315,6 +316,13 @@ class WebBrowserWidget(QWidget):
         self._internet_type = _combo(["DHCP", "Static IP", "PPPoE"], r.internet_connection_type)
         wan_ip = getattr(r.get_internet_port(), 'ip', "")
         wan_sub = getattr(r.get_internet_port(), 'subnet', "")
+        wan_gw = r.config.get("wan_gateway", "")
+        wan_dns = r.config.get("wan_dns", "")
+        
+        self._wan_ip = _field(wan_ip)
+        self._wan_subnet = _field(wan_sub)
+        self._wan_gw = _field(wan_gw)
+        self._wan_dns = _field(wan_dns)
         self._wan_ip = _field(wan_ip)
         self._wan_subnet = _field(wan_sub)
 
@@ -322,7 +330,12 @@ class WebBrowserWidget(QWidget):
             ("Internet Connection Type:", self._internet_type),
             ("IP Address:", self._wan_ip),
             ("Subnet Mask:", self._wan_subnet),
+            ("Default Gateway:", self._wan_gw),
+            ("DNS Server:", self._wan_dns),
         ]))
+
+        self._internet_type.currentTextChanged.connect(self._toggle_wan_fields)
+        self._toggle_wan_fields(r.internet_connection_type)
 
         pv.addWidget(_section_label("Router IP (LAN)"))
 
@@ -351,6 +364,21 @@ class WebBrowserWidget(QWidget):
         pv.addWidget(self._save_btn(self._save_setup), alignment=Qt.AlignmentFlag.AlignRight)
         return page
 
+    def _toggle_wan_fields(self, ctype):
+        disabled = (ctype == "DHCP")
+        for f in [self._wan_ip, self._wan_subnet]:
+            f.setEnabled(not disabled)
+            f.setStyleSheet(
+                "background:#e0e0e0; border:1px solid #aaa; border-radius:3px; padding:4px 6px; font-size:12px; color:#888;" if disabled else 
+                "background:#fff; border:1px solid #aaa; border-radius:3px; padding:4px 6px; font-size:12px;"
+            )
+        for f in [self._wan_gw, self._wan_dns]:
+            f.setEnabled(not disabled)
+            f.setStyleSheet(
+                "background:#e0e0e0; border:1px solid #aaa; border-radius:3px; padding:4px 6px; font-size:12px; color:#888;" if disabled else 
+                "background:#fff; border:1px solid #aaa; border-radius:3px; padding:4px 6px; font-size:12px;"
+            )
+
     def _save_setup(self):
         r = self.current_router
         new_lan_ip = self._lan_ip.text().strip()
@@ -363,6 +391,9 @@ class WebBrowserWidget(QWidget):
         if wan:
             wan.ip = self._wan_ip.text().strip()
             wan.subnet = self._wan_subnet.text().strip()
+            
+        r.config["wan_gateway"] = self._wan_gw.text().strip()
+        r.config["wan_dns"] = self._wan_dns.text().strip()
 
         r.internet_connection_type = self._internet_type.currentText()
         r.dhcp_enabled = self._dhcp_enabled.isChecked()
@@ -370,8 +401,6 @@ class WebBrowserWidget(QWidget):
         r.dhcp_end = self._dhcp_end.text().strip()
 
         QMessageBox.information(self, "Saved", "Setup settings saved.")
-
-    # ── Tab: Wireless ────────────────────────────────────────────────────
 
     def _tab_wireless(self, r):
         page = QWidget()
@@ -404,8 +433,6 @@ class WebBrowserWidget(QWidget):
         r.wifi_security = self._wifi_security.currentText()
         r.wifi_password = self._wifi_pass.text().strip()
         QMessageBox.information(self, "Saved", "Wireless settings saved.")
-
-    # ── Tab: Administration ──────────────────────────────────────────────
 
     def _tab_administration(self, r):
         page = QWidget()
@@ -441,11 +468,6 @@ class WebBrowserWidget(QWidget):
         r.admin_username = self._admin_user.text().strip() or r.admin_username
         r.admin_password = p1 or r.admin_password
         QMessageBox.information(self, "Saved", "Administration settings saved.")
-
-    # ------------------------------------------------------------------
-    # Shared helpers
-    # ------------------------------------------------------------------
-
     def _save_btn(self, handler):
         btn = QPushButton("Save Settings")
         btn.setFixedHeight(30)
