@@ -9,13 +9,11 @@ from GUI.cmd_app import CmdWidget
 from GUI.cli_app import CLIWidget
 from GUI.notepad import NotepadWidget
 from GUI.calculator import CalculatorWidget
-<<<<<<< Updated upstream
-=======
 from GUI.services_server_app import ServicesWidget
 from GUI.email_client_app import EmailClientWidget
 from GUI.web_browser_app import WebBrowserWidget
 from GUI.wifi_app import WifiAppWidget
->>>>>>> Stashed changes
+
 
 class DesktopEnvironment(QMainWindow):
     def __init__(self, device, canvas):
@@ -111,15 +109,13 @@ class DesktopEnvironment(QMainWindow):
             {"name": "Notepad", "icon_file": "notepad.png", "factory": NotepadWidget},
             {"name": "Calculator", "icon_file": "calculator.png", "factory": CalculatorWidget}
         ]
-<<<<<<< Updated upstream
-=======
         if self.device.type in ["PC", "Laptop"]:
             self.available_apps.append({"name": "Email", "icon_file": "pc_email_unread.png", "factory": lambda: EmailClientWidget(self.device, self.canvas.devices, self.canvas.links)})
             self.available_apps.append({"name": "Web\nBrowser", "icon_file": "browser.png", "factory": lambda: WebBrowserWidget(self.device, self.canvas.devices, self.canvas.links)})
         if self.device.type == "Server":
             self.available_apps.append({"name": "Services", "icon_file": "services.png", "factory": lambda: ServicesWidget(self.device)})
             
->>>>>>> Stashed changes
+
         if self.device.type == "Laptop":
             self.available_apps.append({"name": "Terminal", "icon_file": "terminal.png", "factory": lambda: CLIWidget(self.device)})
             self.available_apps.append({"name": "WiFi App", "icon_file": "wireless.png", "factory": lambda: WifiAppWidget(self.device, self.canvas)})

@@ -7,6 +7,7 @@ from GUI.canvas import NetworkCanvas, DeviceNode, CableNode
 
 from Devices.pc import PC
 from Devices.laptop import Laptop
+from Devices.server import Server
 from Devices.router2911 import Router2911
 from Devices.switch2960 import Switch2960
 from Devices.wireless_router import WirelessRouter
@@ -57,13 +58,10 @@ class MainWindow(QMainWindow):
         toolbar.setMovable(False)
         self.addToolBar(Qt.ToolBarArea.TopToolBarArea, toolbar)
 
-<<<<<<< Updated upstream
-        for act in ["Add PC", "Add Laptop", "Add Router", "Add Switch"]:
-=======
         for act in ["Add PC", "Add Laptop", "Add Server", "Add Router", "Add Switch", "Add Wireless Router"]:
->>>>>>> Stashed changes
+
             action = QAction(act, self)
-            action.triggered.connect(lambda checked, a=act: self.canvas.set_mode('device', a.split()[1]))
+            action.triggered.connect(lambda checked, a=act: self.canvas.set_mode('device', a.replace("Add ", "")))
             toolbar.addAction(action)
 
         toolbar.addSeparator()
@@ -100,11 +98,8 @@ class MainWindow(QMainWindow):
 
         self.canvas.clear_canvas()
 
-<<<<<<< Updated upstream
-        dev_classes = {"PC": PC, "Laptop": Laptop, "Router": Router2911, "Switch": Switch2960}
-=======
         dev_classes = {"PC": PC, "Laptop": Laptop, "Server": Server, "Router": Router2911, "Switch": Switch2960, "WirelessRouter": WirelessRouter}
->>>>>>> Stashed changes
+
         id_to_device = {}
 
         for dev_data in data.get("devices", []):

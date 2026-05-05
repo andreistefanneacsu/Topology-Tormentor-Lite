@@ -10,6 +10,12 @@ from simulator import NetworkSimulator
 def _field(text="", password=False, width=220):
     f = QLineEdit(text)
     f.setMinimumSize(150, 24)
+
+
+
+def _field(text="", password=False, width=220):
+    f = QLineEdit(text)
+    f.setFixedWidth(width)
     if password:
         f.setEchoMode(QLineEdit.EchoMode.Password)
     f.setStyleSheet(
@@ -25,6 +31,7 @@ def _combo(options, current=""):
     if current in options:
         c.setCurrentText(current)
     c.setMinimumSize(150, 24)
+    c.setFixedWidth(220)
     c.setStyleSheet(
         "background:#fff; border:1px solid #aaa; border-radius:3px;"
         "padding:3px 6px; font-size:12px;"
@@ -54,6 +61,16 @@ def _make_form(rows):
         form.addWidget(widget, i, 1)
     return w
 
+    form = QFormLayout(w)
+    form.setLabelAlignment(Qt.AlignmentFlag.AlignRight)
+    form.setHorizontalSpacing(14)
+    form.setVerticalSpacing(8)
+    for label_text, widget in rows:
+        lbl = QLabel(label_text)
+        lbl.setStyleSheet("font-size:12px;")
+        form.addRow(lbl, widget)
+    return w
+
 class WebBrowserWidget(QWidget):
     def __init__(self, host_device, all_devices, all_links):
         super().__init__()
@@ -63,6 +80,7 @@ class WebBrowserWidget(QWidget):
         self._logged_in = False
 
         self.resize(850, 700)
+        self.resize(700, 560)
         self.setWindowTitle("Web Browser")
         self.setStyleSheet(
             "background:#f0f0f0; color:#222; font-family:Tahoma,Arial,sans-serif; font-size:12px;"
@@ -167,7 +185,7 @@ class WebBrowserWidget(QWidget):
         lbl.setWordWrap(True)
         lbl.setStyleSheet("color:#c00; font-size:13px; margin:60px 30px;")
         self.content_layout.addWidget(lbl)
-
+        
     def _show_login(self):
         self._clear()
 
@@ -184,6 +202,8 @@ class WebBrowserWidget(QWidget):
         cv = QVBoxLayout(card)
         cv.setContentsMargins(28, 24, 28, 24)
         cv.setSpacing(14)
+
+        header = QLabel("Router Login")
 
         header = QLabel("Router Login")
         header.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -208,6 +228,18 @@ class WebBrowserWidget(QWidget):
         form.addWidget(self._login_user, 0, 1)
         form.addWidget(QLabel("Password:"), 1, 0, Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
         form.addWidget(self._login_pass, 1, 1)
+        form = QFormLayout()
+        form.setHorizontalSpacing(10)
+        form.setVerticalSpacing(10)
+        form.setLabelAlignment(Qt.AlignmentFlag.AlignRight)
+
+        self._login_user = _field()
+        self._login_pass = _field(password=True)
+        self._login_user.setFixedWidth(180)
+        self._login_pass.setFixedWidth(180)
+
+        form.addRow("Username:", self._login_user)
+        form.addRow("Password:", self._login_pass)
         cv.addLayout(form)
 
         login_btn = QPushButton("Log In")
@@ -291,6 +323,8 @@ class WebBrowserWidget(QWidget):
         self._wan_subnet = _field(wan_sub)
         self._wan_gw = _field(wan_gw)
         self._wan_dns = _field(wan_dns)
+        self._wan_ip = _field(wan_ip)
+        self._wan_subnet = _field(wan_sub)
 
         pv.addWidget(_make_form([
             ("Internet Connection Type:", self._internet_type),
@@ -434,7 +468,6 @@ class WebBrowserWidget(QWidget):
         r.admin_username = self._admin_user.text().strip() or r.admin_username
         r.admin_password = p1 or r.admin_password
         QMessageBox.information(self, "Saved", "Administration settings saved.")
-
     def _save_btn(self, handler):
         btn = QPushButton("Save Settings")
         btn.setFixedHeight(30)
