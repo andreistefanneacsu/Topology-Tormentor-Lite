@@ -14,21 +14,11 @@ class Server(Host):
         self.services = {
             "DHCP": {
                 "enabled": False,
-                "pools": {}
+                "pools": {},
+                "excluded_addresses": []
             }
         }
         self.dhcp_leases = {}
-
-    def receive_email(self, to_email, from_email, subject, body):
-        if "@" not in to_email:
-            return False, "Invalid to email address"
-        username, domain = to_email.split("@", 1)
-        if domain != self.email_domain:
-            return False, "Domain does not match server"
-        if username not in self.email_users:
-            return False, "User does not exist"
-        
-        self.dns_records = {}
 
     def receive_email(self, to_email, from_email, subject, body):
         if "@" not in to_email:
@@ -53,13 +43,32 @@ class Server(Host):
             return False, "Authentication failed"
 
         if self.email_users[username]["password"] != password:
-            return False, "Authentication failed"        
-        if self.email_users[username]["password"] != password:
             return False, "Authentication failed"
             
         return True, self.email_users[username]["inbox"]
+
     def resolve_dns(self, domain):
         return self.dns_records.get(domain, None)
+
+    def _get_excluded_ips(self, excluded_list):
+        excluded = set()
+        if not excluded_list:
+            return excluded
+            
+        for part in excluded_list:
+            part = part.strip()
+            try:
+                if '-' in part:
+                    start_str, end_str = part.split('-')
+                    start_ip = int(ipaddress.IPv4Address(start_str.strip()))
+                    end_ip = int(ipaddress.IPv4Address(end_str.strip()))
+                    for ip_int in range(start_ip, end_ip + 1):
+                        excluded.add(str(ipaddress.IPv4Address(ip_int)))
+                else:
+                    excluded.add(str(ipaddress.IPv4Address(part)))
+            except Exception:
+                pass
+        return excluded
 
     def allocate_ip(self, device_id, helper_ip=None):
         """Return (ip_str, pool_cfg) tuple or None if allocation fails.
@@ -82,14 +91,19 @@ class Server(Host):
 
         pool = pools[selected_pool_key]
         used_ips = {v["ip"] for v in self.dhcp_leases.values()}
+        
+        excluded_list = dhcp_cfg.get("excluded_addresses", [])
+        excluded_ips = self._get_excluded_ips(excluded_list)
+        
         try:
             start_int = int(ipaddress.IPv4Address(pool.get("start_ip", "192.168.1.100")))
             end_int   = int(ipaddress.IPv4Address(pool.get("end_ip",   "192.168.1.149")))
         except Exception:
             return None
+            
         for ip_int in range(start_int, end_int + 1):
             ip_str = str(ipaddress.IPv4Address(ip_int))
-            if ip_str not in used_ips:
+            if ip_str not in used_ips and ip_str not in excluded_ips:
                 self.dhcp_leases[device_id] = {"ip": ip_str, "gateway": selected_pool_key}
                 return ip_str, pool
         return None

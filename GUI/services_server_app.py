@@ -2,7 +2,7 @@ import os
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QFormLayout,
                              QLineEdit, QPushButton, QLabel, QListWidget,
                              QMessageBox, QStackedWidget, QListWidgetItem, QTableWidget,
-                             QTableWidgetItem, QHeaderView, QGroupBox, QCheckBox)
+                             QTableWidgetItem, QHeaderView, QGroupBox, QCheckBox, QDialog)
 from PyQt6.QtCore import Qt, QSize
 from PyQt6.QtGui import QIcon
 
@@ -13,11 +13,7 @@ _GROUP  = ("QGroupBox { font-weight: bold; border: 1px solid #7F9DB9; border-rad
 _BTN    = "background-color: #F0F0F0; border: 1px solid gray; padding: 2px 10px;"
 _WIDGET = "background-color: #ECE9D8; color: black; font-family: Tahoma; font-size: 12px;"
 
-from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QFormLayout, 
-                             QLineEdit, QPushButton, QLabel, QListWidget, 
-                             QMessageBox, QStackedWidget, QListWidgetItem, QTableWidget, QTableWidgetItem, QHeaderView)
-from PyQt6.QtCore import Qt, QSize
-from PyQt6.QtGui import QIcon
+
 class EmailServerWidget(QWidget):
     def __init__(self, host_device):
         super().__init__()
@@ -28,10 +24,7 @@ class EmailServerWidget(QWidget):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
 
-        self.setStyleSheet("background-color: #ECE9D8; color: black; font-family: Tahoma; font-size: 12px;")
-        
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(0, 0, 0, 0)
+
 
         title = QLabel("Email Service Configuration")
         title.setStyleSheet("font-weight: bold; font-size: 14px;")
@@ -84,53 +77,6 @@ class EmailServerWidget(QWidget):
         layout.addWidget(user_group)
 
 
-        # Domain config
-        domain_layout = QHBoxLayout()
-        domain_layout.addWidget(QLabel("Domain Name:"))
-        self.domain_input = QLineEdit(self.server.email_domain)
-        self.domain_input.setStyleSheet("background-color: white; border: 1px solid #7F9DB9; padding: 2px;")
-        domain_layout.addWidget(self.domain_input)
-        
-        set_domain_btn = QPushButton("Set")
-        set_domain_btn.setStyleSheet("background-color: #F0F0F0; border: 1px solid gray; padding: 2px 10px;")
-        set_domain_btn.clicked.connect(self.set_domain)
-        domain_layout.addWidget(set_domain_btn)
-        
-        layout.addLayout(domain_layout)
-        
-        layout.addWidget(QLabel("User Accounts:"))
-        
-        # User management
-        user_form = QFormLayout()
-        self.user_input = QLineEdit()
-        self.pass_input = QLineEdit()
-        for box in [self.user_input, self.pass_input]: 
-            box.setStyleSheet("background-color: white; border: 1px solid #7F9DB9; padding: 2px;")
-        
-        user_form.addRow("User:", self.user_input)
-        user_form.addRow("Password:", self.pass_input)
-        layout.addLayout(user_form)
-        
-        btn_layout = QHBoxLayout()
-        add_btn = QPushButton("+")
-        add_btn.setStyleSheet("background-color: #F0F0F0; border: 1px solid gray; padding: 2px 10px;")
-        add_btn.clicked.connect(self.add_user)
-        
-        remove_btn = QPushButton("-")
-        remove_btn.setStyleSheet("background-color: #F0F0F0; border: 1px solid gray; padding: 2px 10px;")
-        remove_btn.clicked.connect(self.remove_user)
-        
-        btn_layout.addWidget(add_btn)
-        btn_layout.addWidget(remove_btn)
-        btn_layout.addStretch()
-        layout.addLayout(btn_layout)
-        
-        self.user_list = QListWidget()
-        self.user_list.setStyleSheet("background-color: white; border: 1px solid #7F9DB9;")
-        layout.addWidget(self.user_list)
-        
-        self.refresh_user_list()
-
     def set_domain(self):
         self.server.email_domain = self.domain_input.text().strip()
         QMessageBox.information(self, "Success", f"Domain set to {self.server.email_domain}")
@@ -159,7 +105,7 @@ class EmailServerWidget(QWidget):
         selected = self.user_list.currentItem()
         if not selected:
             return
-        if not selected: return
+
 
         user = selected.text()
         if user in self.server.email_users:
@@ -181,11 +127,7 @@ class DnsServerWidget(QWidget):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
 
-        self.setStyleSheet("background-color: #ECE9D8; color: black; font-family: Tahoma; font-size: 12px;")
-        
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(0, 0, 0, 0)
-        
+
         title = QLabel("DNS Service Configuration")
         title.setStyleSheet("font-weight: bold; font-size: 14px;")
         layout.addWidget(title)
@@ -217,30 +159,7 @@ class DnsServerWidget(QWidget):
         btn_layout.addStretch()
         group_layout.addLayout(btn_layout)
 
-        form_layout = QFormLayout()
-        self.domain_input = QLineEdit()
-        self.ip_input = QLineEdit()
-        for box in [self.domain_input, self.ip_input]: 
-            box.setStyleSheet("background-color: white; border: 1px solid #7F9DB9; padding: 2px;")
-            
-        form_layout.addRow("Domain:", self.domain_input)
-        form_layout.addRow("IP Address:", self.ip_input)
-        layout.addLayout(form_layout)
-        
-        btn_layout = QHBoxLayout()
-        add_btn = QPushButton("Add Record")
-        add_btn.setStyleSheet("background-color: #F0F0F0; border: 1px solid gray; padding: 2px 10px;")
-        add_btn.clicked.connect(self.add_record)
-        
-        remove_btn = QPushButton("Remove Selected")
-        remove_btn.setStyleSheet("background-color: #F0F0F0; border: 1px solid gray; padding: 2px 10px;")
-        remove_btn.clicked.connect(self.remove_record)
-        
-        btn_layout.addWidget(add_btn)
-        btn_layout.addWidget(remove_btn)
-        btn_layout.addStretch()
-        layout.addLayout(btn_layout)
-        
+
         self.records_table = QTableWidget(0, 2)
         self.records_table.setHorizontalHeaderLabels(["Domain", "IP Address"])
         self.records_table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
@@ -251,7 +170,7 @@ class DnsServerWidget(QWidget):
         layout.addWidget(group)
 
 
-        layout.addWidget(self.records_table)
+
 
         self.refresh_records()
 
@@ -263,10 +182,7 @@ class DnsServerWidget(QWidget):
             QMessageBox.warning(self, "Error", "Domain and IP Address cannot be empty.")
             return
 
-        
-        if not domain or not ip:
-            QMessageBox.warning(self, "Error", "Domain and IP Address cannot be empty.")
-            return
+
             
         self.server.dns_records[domain] = ip
         self.domain_input.clear()
@@ -291,6 +207,66 @@ class DnsServerWidget(QWidget):
             self.records_table.setItem(row_idx, 0, QTableWidgetItem(domain))
             self.records_table.setItem(row_idx, 1, QTableWidgetItem(ip))
 
+class ExcludedAddressesDialog(QDialog):
+    def __init__(self, server, parent=None):
+        super().__init__(parent)
+        self.server = server
+        self.setWindowTitle("Manage Excluded Addresses")
+        self.resize(350, 300)
+        self.setStyleSheet(_WIDGET)
+        
+        layout = QVBoxLayout(self)
+        
+        self.list_widget = QListWidget()
+        self.list_widget.setStyleSheet("background-color: white; border: 1px solid #7F9DB9;")
+        
+        cfg = self.server.services.setdefault("DHCP", {})
+        self.excluded_list = cfg.setdefault("excluded_addresses", [])
+        
+        for exc in self.excluded_list:
+            self.list_widget.addItem(exc)
+            
+        layout.addWidget(QLabel("Global Excluded IPs / Ranges:"))
+        layout.addWidget(self.list_widget)
+        
+        form = QFormLayout()
+        self.input_field = QLineEdit()
+        self.input_field.setStyleSheet(_FIELD)
+        self.input_field.setPlaceholderText("e.g. 192.168.1.1 or 192.168.1.1-192.168.1.10")
+        form.addRow("Address/Range:", self.input_field)
+        layout.addLayout(form)
+        
+        btn_layout = QHBoxLayout()
+        add_btn = QPushButton("Add")
+        add_btn.setStyleSheet(_BTN)
+        add_btn.clicked.connect(self.add_address)
+        
+        remove_btn = QPushButton("Remove Selected")
+        remove_btn.setStyleSheet(_BTN)
+        remove_btn.clicked.connect(self.remove_address)
+        
+        btn_layout.addWidget(add_btn)
+        btn_layout.addWidget(remove_btn)
+        layout.addLayout(btn_layout)
+        
+    def add_address(self):
+        val = self.input_field.text().strip()
+        if not val: return
+        if val not in self.excluded_list:
+            self.excluded_list.append(val)
+            self.list_widget.addItem(val)
+        self.input_field.clear()
+        
+    def remove_address(self):
+        item = self.list_widget.currentItem()
+        if not item: return
+        val = item.text()
+        if val in self.excluded_list:
+            self.excluded_list.remove(val)
+        row = self.list_widget.row(item)
+        self.list_widget.takeItem(row)
+
+
 class DhcpServerWidget(QWidget):
     def __init__(self, host_device):
         super().__init__()
@@ -311,6 +287,12 @@ class DhcpServerWidget(QWidget):
         cfg = self.server.services.get("DHCP", {})
         self.enabled_cb.setChecked(cfg.get("enabled", False))
         svc_row.addWidget(self.enabled_cb)
+        
+        manage_exc_btn = QPushButton("Manage Excluded Addresses")
+        manage_exc_btn.setStyleSheet(_BTN)
+        manage_exc_btn.clicked.connect(self.open_excluded_dialog)
+        svc_row.addWidget(manage_exc_btn)
+        
         svc_row.addStretch()
         root.addWidget(svc_group)
 
@@ -413,6 +395,10 @@ class DhcpServerWidget(QWidget):
         self._rebuild_pool_list()
         self.refresh_leases()
 
+    def open_excluded_dialog(self):
+        dialog = ExcludedAddressesDialog(self.server, self)
+        dialog.exec()
+
     def _pools(self):
         return self.server.services.setdefault("DHCP", {}).setdefault("pools", {})
 
@@ -420,15 +406,20 @@ class DhcpServerWidget(QWidget):
         self.pool_list.blockSignals(True)
         self.pool_list.clear()
         pools = self._pools()
-        for gw in pools.keys():
-            self.pool_list.addItem(gw)
+        for gw, p_data in pools.items():
+            item_text = p_data.get("name", f"Pool {gw}")
+            item = QListWidgetItem(item_text)
+            item.setData(Qt.ItemDataRole.UserRole, gw)
+            self.pool_list.addItem(item)
         self.pool_list.blockSignals(False)
         
         if self.pool_list.count() > 0:
             if select_key:
-                items = self.pool_list.findItems(select_key, Qt.MatchFlag.MatchExactly)
-                if items:
-                    self.pool_list.setCurrentItem(items[0])
+                for i in range(self.pool_list.count()):
+                    item = self.pool_list.item(i)
+                    if item.data(Qt.ItemDataRole.UserRole) == select_key:
+                        self.pool_list.setCurrentItem(item)
+                        break
             else:
                 self.pool_list.setCurrentRow(0)
             self._on_pool_selected()
@@ -449,7 +440,7 @@ class DhcpServerWidget(QWidget):
             self._clear_detail_fields()
             return
             
-        gw = curr_item.text()
+        gw = curr_item.data(Qt.ItemDataRole.UserRole)
         p = pools.get(gw, {})
         self.pool_name.setText(p.get("name", ""))
         self.pool_enabled.setChecked(p.get("enabled", True))
@@ -487,7 +478,7 @@ class DhcpServerWidget(QWidget):
         curr_item = self.pool_list.currentItem()
         if not curr_item:
             return
-        gw = curr_item.text()
+        gw = curr_item.data(Qt.ItemDataRole.UserRole)
         pools = self._pools()
         if gw in pools:
             pools.pop(gw)
@@ -499,7 +490,7 @@ class DhcpServerWidget(QWidget):
         curr_item = self.pool_list.currentItem()
         if not curr_item:
             return
-        old_gw = curr_item.text()
+        old_gw = curr_item.data(Qt.ItemDataRole.UserRole)
         pools = self._pools()
         if old_gw not in pools:
             return
@@ -511,7 +502,7 @@ class DhcpServerWidget(QWidget):
             "end_ip":          self.pool_end.text().strip(),
             "subnet_mask":     self.pool_subnet.text().strip(),
             "default_gateway": old_gw, # Enforced
-            "dns_server":      self.pool_dns.text().strip(),
+            "dns_server":      self.pool_dns.text().strip()
         })
         self._rebuild_pool_list(select_key=old_gw)
 
@@ -549,16 +540,12 @@ class ServicesWidget(QWidget):
     def __init__(self, host_device):
         super().__init__()
         self.server = host_device
-        self.resize(620, 520)
+        self.resize(750, 600)
         self.setStyleSheet(_WIDGET)
 
         main_layout = QHBoxLayout(self)
 
-        self.resize(550, 450)
-        self.setStyleSheet("background-color: #ECE9D8; color: black; font-family: Tahoma; font-size: 12px;")
-        
-        main_layout = QHBoxLayout(self)
-        
+
         # Sidebar for service selection
         self.service_list = QListWidget()
         self.service_list.setFixedWidth(150)
@@ -587,17 +574,7 @@ class ServicesWidget(QWidget):
         main_layout.addWidget(self.service_list)
         main_layout.addWidget(self.stacked_widget)
 
-        
-        # Stacked widget for the configuration panels
-        self.stacked_widget = QStackedWidget()
-        self.stacked_widget.setStyleSheet("background-color: #ECE9D8;")
-        
-        # Initialize services
-        self.init_services()
-        
-        main_layout.addWidget(self.service_list)
-        main_layout.addWidget(self.stacked_widget)
-        
+
         self.service_list.currentRowChanged.connect(self.stacked_widget.setCurrentIndex)
         if self.service_list.count() > 0:
             self.service_list.setCurrentRow(0)
@@ -620,21 +597,3 @@ class ServicesWidget(QWidget):
         dhcp_item = QListWidgetItem("DHCP")
         self.service_list.addItem(dhcp_item)
         self.stacked_widget.addWidget(dhcp_widget)
-        # Email Service
-        email_widget = EmailServerWidget(self.server)
-        email_item = QListWidgetItem("Email")
-        
-        email_icon_path = os.path.join("GUI", "icons", "pc_email_unread.png")
-        if os.path.exists(email_icon_path):
-            email_item.setIcon(QIcon(email_icon_path))
-            
-        self.service_list.addItem(email_item)
-        self.stacked_widget.addWidget(email_widget)
-        
-        # DNS Service
-        dns_widget = DnsServerWidget(self.server)
-        dns_item = QListWidgetItem("DNS")
-        
-        # Use terminal/settings or leave without specific icon for DNS
-        self.service_list.addItem(dns_item)
-        self.stacked_widget.addWidget(dns_widget)

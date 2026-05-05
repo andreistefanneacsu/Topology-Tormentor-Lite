@@ -209,6 +209,29 @@ class NetworkSimulator:
                 if not peer_intf or not getattr(peer_intf, 'is_up', False):
                     continue
                     
+                if peer_dev.type == "Router":
+                    if getattr(peer_dev, 'config', {}).get("dhcp_pools"):
+                        dhcp_server = peer_dev
+                        successful_start_port = start_port
+                        final_helper_ip = relay_ip or peer_intf.ip
+                        break
+                        
+                    helper = getattr(peer_intf, 'ip_helper_address', '')
+                    if helper:
+                        target_dev = None
+                        for d in self.devices.values():
+                            for i_name, i_obj in d.interfaces.items():
+                                if getattr(i_obj, 'ip', "") == helper:
+                                    target_dev = d
+                                    break
+                            if target_dev: break
+                            
+                        if target_dev and (target_dev.type == "Server" or getattr(target_dev, 'config', {}).get("dhcp_pools")):
+                            dhcp_server = target_dev
+                            successful_start_port = start_port
+                            final_helper_ip = relay_ip or peer_intf.ip
+                            break
+                            
                 if peer_dev.type == "WirelessRouter" and getattr(peer_dev, 'dhcp_enabled', False):
                     dhcp_server = peer_dev
                     successful_start_port = start_port
@@ -229,7 +252,7 @@ class NetworkSimulator:
                 break
         
         if dhcp_server:
-            if dhcp_server.type == "Server":
+            if dhcp_server.type in ("Server", "Router"):
                 result = dhcp_server.allocate_ip(host_device.id, final_helper_ip)
             else:
                 result = dhcp_server.allocate_ip(host_device.id)
@@ -243,13 +266,13 @@ class NetworkSimulator:
                 dns = gw
                 sub = "255.255.255.0"
                 return {"ip": ip, "subnet": sub, "gateway": gw, "dns": dns, "interface": successful_start_port}
-            elif dhcp_server.type == "Server":
+            elif dhcp_server.type in ("Server", "Router"):
                 ip, pool_cfg = result
                 return {
                     "ip": ip,
-                    "subnet": pool_cfg.get("subnet_mask", "255.255.255.0"),
-                    "gateway": pool_cfg.get("default_gateway", ""),
-                    "dns": pool_cfg.get("dns_server", ""),
+                    "subnet": pool_cfg.get("mask", pool_cfg.get("subnet_mask", "255.255.255.0")),
+                    "gateway": pool_cfg.get("default-router", pool_cfg.get("default_gateway", "")),
+                    "dns": pool_cfg.get("dns-server", pool_cfg.get("dns_server", "")),
                     "interface": successful_start_port
                 }
         return None
