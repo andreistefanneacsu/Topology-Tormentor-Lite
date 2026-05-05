@@ -1,5 +1,8 @@
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QTextEdit, QLineEdit
 
+from PyQt6.QtCore import Qt
+from GUI.cmd_app import TerminalEdit
+
 class CLIWidget(QWidget):
     def __init__(self, device):
         super().__init__()
@@ -19,36 +22,21 @@ class CLIWidget(QWidget):
             layout.addWidget(err)
             return
 
-        self.output_area = QTextEdit()
-        self.output_area.setReadOnly(True)
-        self.output_area.setStyleSheet("background-color: #000000; color: #00FF00; font-family: Consolas; font-size: 14px; border: none;")
-        self.output_area.append(f"PuTTY (Inactive) - Connected to {self.target.name} via COM1\n\n")
-        self.output_area.append(self.target.get_prompt())
+        self.terminal = TerminalEdit(self.execute_command)
+        self.terminal.setStyleSheet("background-color: #000000; color: #00FF00; font-family: Consolas; font-size: 14px; border: none;")
+        self.terminal.append_output(f"PuTTY (Inactive) - Connected to {self.target.name} via COM1\n\n")
+        self.terminal.set_prompt(self.target.get_prompt())
 
-        self.output_area.mousePressEvent = self.force_focus
+        layout.addWidget(self.terminal)
+        self.terminal.setFocus()
 
-        self.input_line = QLineEdit()
-        self.input_line.setStyleSheet("background-color: #000000; color: #00FF00; font-family: Consolas; font-size: 14px; border: none;")
-        self.input_line.returnPressed.connect(self.execute_command)
-
-        layout.addWidget(self.output_area)
-        layout.addWidget(self.input_line)
-
-        self.input_line.setFocus()
-
-    def force_focus(self, event):
-        self.input_line.setFocus()
-        QTextEdit.mousePressEvent(self.output_area, event)
-
-    def execute_command(self):
-        cmd = self.input_line.text()
-        self.input_line.clear()
-        
-        self.output_area.insertPlainText(f"{cmd}\n")
-        
+    def execute_command(self, cmd):
+        if not cmd:
+            self.terminal.set_prompt(self.target.get_prompt())
+            return
+            
         response = self.target.process_command(cmd)
         if response:
-            self.output_area.insertPlainText(response)
+            self.terminal.append_output(response)
             
-        self.output_area.insertPlainText(self.target.get_prompt())
-        self.output_area.ensureCursorVisible()
+        self.terminal.set_prompt(self.target.get_prompt())

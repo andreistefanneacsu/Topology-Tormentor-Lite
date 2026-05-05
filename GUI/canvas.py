@@ -7,6 +7,11 @@ from Devices.pc import PC
 from Devices.laptop import Laptop
 from Devices.router2911 import Router2911
 from Devices.switch2960 import Switch2960
+<<<<<<< Updated upstream
+=======
+from Devices.server import Server
+from Devices.wireless_router import WirelessRouter
+>>>>>>> Stashed changes
 from Devices.interface import Interface
 from Devices.link import Link
 from GUI.desktop import DesktopEnvironment
@@ -45,6 +50,10 @@ class CableNode(QGraphicsPathItem):
             control_x = (start.x() + end.x()) / 2
             control_y = min(start.y(), end.y()) - 120 
             path.quadTo(QPointF(control_x, control_y), end)
+        elif self.cable_type == "Wireless":
+            pen.setColor(QColor("#89DCEB"))
+            pen.setStyle(Qt.PenStyle.DashDotLine)
+            path.lineTo(end)
 
         self.setPen(pen)
         self.setPath(path)
@@ -123,6 +132,41 @@ class DeviceNode(QGraphicsItem):
             painter.setBrush(QBrush(QColor("#CDD6F4")))
             painter.drawPolygon(QPointF(-35, 15), QPointF(35, 15), QPointF(45, 25), QPointF(-45, 25))
 
+<<<<<<< Updated upstream
+=======
+        elif self.device.type == "Server":
+            painter.setBrush(QBrush(QColor("#313244")))
+            painter.drawRoundedRect(-20, -40, 40, 70, 3, 3)
+            painter.setBrush(QBrush(QColor("#A6E3A1")))
+            painter.drawRect(-10, -30, 20, 5)
+            painter.setBrush(QBrush(QColor("#89B4FA")))
+            painter.drawRect(-10, -20, 20, 5)
+            painter.setBrush(QBrush(QColor("#F9E2AF")))
+            painter.drawRect(-10, -10, 20, 5)
+
+        elif self.device.type == "WirelessRouter":
+            # Body
+            grad.setColorAt(0, QColor("#2D3A5C"))
+            grad.setColorAt(1, QColor("#1A2240"))
+            painter.setBrush(QBrush(grad))
+            painter.drawRoundedRect(-30, -15, 60, 30, 5, 5)
+            # Antennas
+            painter.setPen(QPen(QColor("#89B4FA"), 2))
+            painter.drawLine(-15, -15, -20, -35)
+            painter.drawLine(0, -15, 0, -38)
+            painter.drawLine(15, -15, 20, -35)
+            # Antenna tips
+            painter.setBrush(QBrush(QColor("#89B4FA")))
+            painter.setPen(Qt.PenStyle.NoPen)
+            painter.drawEllipse(-22, -38, 5, 5)
+            painter.drawEllipse(-2, -41, 5, 5)
+            painter.drawEllipse(18, -38, 5, 5)
+            # Wifi signal arcs
+            painter.setPen(QPen(QColor("#A6E3A1"), 1))
+            painter.drawArc(-10, -8, 20, 15, 0, 180 * 16)
+            painter.drawArc(-18, -12, 36, 25, 0, 180 * 16)
+
+>>>>>>> Stashed changes
         painter.setPen(QPen(QColor("#CDD6F4")))
         painter.setFont(QFont("Segoe UI", 10, QFont.Weight.Bold))
         painter.drawText(QRectF(-50, 35, 100, 20), Qt.AlignmentFlag.AlignCenter, self.device.name)
@@ -139,6 +183,8 @@ class DeviceNode(QGraphicsItem):
             if self.device.type in ["PC", "Laptop"]:
                 self.os_window = DesktopEnvironment(self.device, self.canvas)
                 self.os_window.show()
+            elif self.device.type == "WirelessRouter":
+                pass  # Configured via Web Browser from PC
             else:
                 
                 from PyQt6.QtWidgets import QDialog, QVBoxLayout
@@ -185,6 +231,9 @@ class NetworkCanvas(QGraphicsView):
             if isinstance(item, DeviceNode):
                 self.remove_device_node(item)
             elif isinstance(item, CableNode):
+                if item.cable_type == "Wireless":
+                    self.status_message.emit("Cannot delete Wireless connection manually. Use the WiFi App.")
+                    continue
                 self.remove_cable_node(item)
 
     def remove_cable_node(self, cable_node):
@@ -220,6 +269,10 @@ class NetworkCanvas(QGraphicsView):
         
         for cable in attached_cables:
             self.remove_cable_node(cable)
+            
+        for d in self.devices:
+            if hasattr(d, "release_ip"):
+                d.release_ip(device_node.device.id)
 
         if device_node.device in self.devices:
             self.devices.remove(device_node.device)
@@ -260,7 +313,11 @@ class NetworkCanvas(QGraphicsView):
             super().mousePressEvent(event)
 
     def add_device(self, pos):
+<<<<<<< Updated upstream
         dev_map = {"PC": PC, "Laptop": Laptop, "Router": Router2911, "Switch": Switch2960}
+=======
+        dev_map = {"PC": PC, "Laptop": Laptop, "Server": Server, "Router": Router2911, "Switch": Switch2960, "Wireless Router": WirelessRouter}
+>>>>>>> Stashed changes
         dev_class = dev_map.get(self.selected_item_type)
         if dev_class:
             num = len([d for d in self.devices if d.type == self.selected_item_type]) + 1
@@ -278,6 +335,8 @@ class NetworkCanvas(QGraphicsView):
         valid_ports = []
         
         for name, intf in node.device.interfaces.items():
+            if getattr(intf, 'is_wireless', False) or name.startswith("Wireless"):
+                continue
             if self._is_port_available(node.device, name):
                 if self.selected_item_type == "Console" and intf.is_console:
                     valid_ports.append(name)

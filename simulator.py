@@ -14,12 +14,13 @@ class NetworkSimulator:
         except Exception:
             return False
 
-    def _get_link(self, device_id, port_name):
+    def _get_links(self, device_id, port_name):
+        res = []
         for link in self.links:
             if (link.interface1["device_id"] == device_id and link.interface1["port"] == port_name) or \
                (link.interface2["device_id"] == device_id and link.interface2["port"] == port_name):
-                return link
-        return None
+                res.append(link)
+        return res
 
     def _get_out_interface(self, device, next_hop_ip):
         for name, intf in device.interfaces.items():
@@ -30,48 +31,69 @@ class NetworkSimulator:
         return None
 
     def _l2_forward(self, start_dev, start_port, target_ip):
+        queue = deque()
         if "vlan" in start_port.lower():
-            queue = deque()
             for p_name, p_obj in start_dev.interfaces.items():
                 if "vlan" not in p_name.lower() and getattr(p_obj, 'is_up', False):
                     queue.append((start_dev, p_name))
+        elif start_dev.type == "WirelessRouter" and (start_port.startswith("Ethernet ") or start_port == "Wireless0"):
+            lan_wlan_ports = list(start_dev.get_lan_ports().keys()) + ["Wireless0"]
+            for p_name in lan_wlan_ports:
+                if getattr(start_dev.interfaces[p_name], 'is_up', False):
+                    queue.append((start_dev, p_name))
         else:
-            queue = deque([(start_dev, start_port)])
+            queue.append((start_dev, start_port))
             
         visited_links = set()
         
         while queue:
             curr_dev, curr_port = queue.popleft()
             
-            link = self._get_link(curr_dev.id, curr_port)
-            if not link or link.id in visited_links:
-                continue
-                
-            visited_links.add(link.id)
-            
-            if link.interface1["device_id"] == curr_dev.id:
-                peer_id, peer_port = link.interface2["device_id"], link.interface2["port"]
-            else:
-                peer_id, peer_port = link.interface1["device_id"], link.interface1["port"]
-                
-            peer_dev = self.devices.get(peer_id)
-            if not peer_dev: continue
-            
-            peer_intf = peer_dev.interfaces.get(peer_port)
-            if not peer_intf or not getattr(peer_intf, 'is_up', False):
-                continue 
-                
-            if peer_dev.type == "Switch":
-                vlan1 = peer_dev.interfaces.get("Vlan1")
-                if vlan1 and getattr(vlan1, 'is_up', False) and getattr(vlan1, 'ip', "") == target_ip:
-                    return peer_dev, target_ip
+            links = self._get_links(curr_dev.id, curr_port)
+            for link in links:
+                if link.id in visited_links:
+                    continue
                     
-                for p_name, p_obj in peer_dev.interfaces.items():
-                    if p_name != peer_port and "vlan" not in p_name.lower() and getattr(p_obj, 'is_up', False):
-                        queue.append((peer_dev, p_name))
-            else:
-                if getattr(peer_intf, 'ip', "") == target_ip:
-                    return peer_dev, target_ip
+                visited_links.add(link.id)
+                
+                if link.interface1["device_id"] == curr_dev.id:
+                    peer_id, peer_port = link.interface2["device_id"], link.interface2["port"]
+                else:
+                    peer_id, peer_port = link.interface1["device_id"], link.interface1["port"]
+                    
+                peer_dev = self.devices.get(peer_id)
+                if not peer_dev: continue
+                
+                peer_intf = peer_dev.interfaces.get(peer_port)
+                if not peer_intf or not getattr(peer_intf, 'is_up', False):
+                    continue 
+                    
+                if peer_dev.type == "Router":
+                    if getattr(peer_intf, 'ip', "") == target_ip:
+                        return peer_dev, target_ip
+                elif peer_dev.type == "WirelessRouter":
+                    lan_wlan_ports = list(peer_dev.get_lan_ports().keys()) + ["Wireless0"]
+                    if peer_port in lan_wlan_ports:
+                        if getattr(peer_dev.interfaces[lan_wlan_ports[0]], 'ip', "") == target_ip:
+                            return peer_dev, target_ip
+                        for p_name in lan_wlan_ports:
+                            if (p_name != peer_port or p_name == "Wireless0") and getattr(peer_dev.interfaces[p_name], 'is_up', False):
+                                queue.append((peer_dev, p_name))
+                    else:
+                        if getattr(peer_intf, 'ip', "") == target_ip:
+                            return peer_dev, target_ip
+                else:
+                    if peer_dev.type == "Switch":
+                        vlan1 = peer_dev.interfaces.get("Vlan1")
+                        if vlan1 and getattr(vlan1, 'is_up', False) and getattr(vlan1, 'ip', "") == target_ip:
+                            return peer_dev, target_ip
+                    else:
+                        if getattr(peer_intf, 'ip', "") == target_ip:
+                            return peer_dev, target_ip
+                    
+                    for p_name, p_obj in peer_dev.interfaces.items():
+                        if p_name != peer_port and "vlan" not in p_name.lower() and getattr(p_obj, 'is_up', False):
+                            queue.append((peer_dev, p_name))
                     
         return None, None
 
@@ -89,7 +111,7 @@ class NetworkSimulator:
         if out_intf:
             next_hop_ip = target_ip 
             
-        if not next_hop_ip and curr_dev.type == "Router":
+        if not next_hop_ip and curr_dev.type in ("Router", "WirelessRouter"):
             for route in curr_dev.config.get("routes", []):
                 if self._is_in_subnet(target_ip, route["network"], route["mask"]):
                     next_hop_ip = route["next_hop"]
@@ -151,3 +173,83 @@ class NetworkSimulator:
         loss_pct = int((lost / 4) * 100)
         print(f"\nPing statistics for {target_ip}:")
         print(f"    Packets: Sent = 4, Received = {successes}, Lost = {lost} ({loss_pct}% loss)")
+
+    def request_dhcp(self, host_device):
+        queue = deque()
+        for p_name, p_obj in host_device.interfaces.items():
+            if getattr(p_obj, 'is_up', False):
+                queue.append((host_device, p_name, p_name, None))
+        
+        visited_links = set()
+        dhcp_server = None
+        successful_start_port = None
+        final_helper_ip = None
+        
+        while queue:
+            curr_dev, curr_port, start_port, relay_ip = queue.popleft()
+            
+            curr_intf = curr_dev.interfaces.get(curr_port)
+            if not relay_ip and curr_intf and getattr(curr_intf, 'ip_helper_address', ''):
+                relay_ip = curr_intf.ip
+
+            links = self._get_links(curr_dev.id, curr_port)
+            for link in links:
+                if link.id in visited_links:
+                    continue
+                    
+                visited_links.add(link.id)
+                
+                peer_id = link.interface2["device_id"] if link.interface1["device_id"] == curr_dev.id else link.interface1["device_id"]
+                peer_port = link.interface2["port"] if link.interface1["device_id"] == curr_dev.id else link.interface1["port"]
+                    
+                peer_dev = self.devices.get(peer_id)
+                if not peer_dev: continue
+                
+                peer_intf = peer_dev.interfaces.get(peer_port)
+                if not peer_intf or not getattr(peer_intf, 'is_up', False):
+                    continue
+                    
+                if peer_dev.type == "WirelessRouter" and getattr(peer_dev, 'dhcp_enabled', False):
+                    dhcp_server = peer_dev
+                    successful_start_port = start_port
+                    final_helper_ip = relay_ip or peer_intf.ip
+                    break
+                
+                if peer_dev.type == "Server" and peer_dev.services.get("DHCP", {}).get("enabled", False):
+                    dhcp_server = peer_dev
+                    successful_start_port = start_port
+                    final_helper_ip = relay_ip or peer_intf.ip
+                    break
+                    
+                if peer_dev.type == "Switch":
+                    for p_name, p_obj in peer_dev.interfaces.items():
+                        if p_name != peer_port and "vlan" not in p_name.lower() and getattr(p_obj, 'is_up', False):
+                            queue.append((peer_dev, p_name, start_port, relay_ip))
+            if dhcp_server:
+                break
+        
+        if dhcp_server:
+            if dhcp_server.type == "Server":
+                result = dhcp_server.allocate_ip(host_device.id, final_helper_ip)
+            else:
+                result = dhcp_server.allocate_ip(host_device.id)
+                
+            if not result:
+                return None
+
+            if dhcp_server.type == "WirelessRouter":
+                ip = result
+                gw = dhcp_server.get_lan_ip()
+                dns = gw
+                sub = "255.255.255.0"
+                return {"ip": ip, "subnet": sub, "gateway": gw, "dns": dns, "interface": successful_start_port}
+            elif dhcp_server.type == "Server":
+                ip, pool_cfg = result
+                return {
+                    "ip": ip,
+                    "subnet": pool_cfg.get("subnet_mask", "255.255.255.0"),
+                    "gateway": pool_cfg.get("default_gateway", ""),
+                    "dns": pool_cfg.get("dns_server", ""),
+                    "interface": successful_start_port
+                }
+        return None
