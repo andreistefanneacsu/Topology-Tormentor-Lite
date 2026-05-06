@@ -1,5 +1,4 @@
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QTabWidget, QGridLayout, QLineEdit, QTextEdit, QPushButton, QMessageBox, QListWidget, QLabel, QGroupBox
-from PyQt6.QtWidgets import QWidget, QVBoxLayout, QTabWidget, QFormLayout, QLineEdit, QTextEdit, QPushButton, QMessageBox, QListWidget, QLabel
 
 from PyQt6.QtCore import Qt
 from simulator import NetworkSimulator
@@ -27,7 +26,6 @@ class EmailClientWidget(QWidget):
     def setup_config_tab(self):
         tab = QWidget()
         layout = QVBoxLayout(tab)
-        layout = QFormLayout(tab)
         
         cfg = self.host.config.get("email_client", {})
         
@@ -65,15 +63,6 @@ class EmailClientWidget(QWidget):
         
         group_layout.addLayout(form_layout)
         layout.addWidget(group)
-        for box in [self.name_input, self.email_input, self.inc_server_input, self.out_server_input, self.user_input, self.pass_input]:
-            box.setStyleSheet("background-color: white; border: 1px solid #7F9DB9; padding: 2px;")
-            
-        layout.addRow("Your Name:", self.name_input)
-        layout.addRow("Email Address:", self.email_input)
-        layout.addRow("Incoming Mail Server:", self.inc_server_input)
-        layout.addRow("Outgoing Mail Server:", self.out_server_input)
-        layout.addRow("User Name:", self.user_input)
-        layout.addRow("Password:", self.pass_input)
         
         save_btn = QPushButton("Save")
         save_btn.setStyleSheet("background-color: #F0F0F0; border: 1px solid gray; padding: 5px;")
@@ -109,15 +98,6 @@ class EmailClientWidget(QWidget):
         form.addWidget(self.to_input, 0, 1)
         form.addWidget(QLabel("Subject:"), 1, 0, Qt.AlignmentFlag.AlignRight)
         form.addWidget(self.subject_input, 1, 1)
-
-        form = QFormLayout()
-        self.to_input = QLineEdit()
-        self.subject_input = QLineEdit()
-        for box in [self.to_input, self.subject_input]:
-            box.setStyleSheet("background-color: white; border: 1px solid #7F9DB9; padding: 2px;")
-            
-        form.addRow("To:", self.to_input)
-        form.addRow("Subject:", self.subject_input)
         layout.addLayout(form)
         
         self.body_input = QTextEdit()
