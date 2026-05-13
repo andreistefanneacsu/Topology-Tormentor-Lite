@@ -281,6 +281,60 @@ class NetworkCanvas(QGraphicsView):
         self.links.clear()
         self.cable_start_node = None
 
+    def import_topology(self, data):
+        self.clear_canvas()
+
+        from Devices.pc import PC
+        from Devices.laptop import Laptop
+        from Devices.server import Server
+        from Devices.router2911 import Router2911
+        from Devices.switch2960 import Switch2960
+        from Devices.wireless_router import WirelessRouter
+
+        dev_classes = {
+            "PC": PC, "Laptop": Laptop, "Server": Server, 
+            "Router": Router2911, "Switch": Switch2960, 
+            "WirelessRouter": WirelessRouter, "Wireless Router": WirelessRouter
+        }
+
+        id_to_device = {}
+
+        for dev_data in data.get("devices", []):
+            dtype = dev_data.get("type")
+            if dtype in dev_classes:
+                backend_dev = dev_classes[dtype](dev_data.get("name", "Unnamed"))
+                backend_dev.from_dict(dev_data)
+                
+                self.devices.append(backend_dev)
+                id_to_device[backend_dev.id] = backend_dev
+                
+                node = DeviceNode(backend_dev, self)
+                node.setPos(backend_dev._x, backend_dev._y)
+                self.scene.addItem(node)
+
+        for link_data in data.get("links", []):
+            d1 = id_to_device.get(link_data["interface1"]["device_id"])
+            d2 = id_to_device.get(link_data["interface2"]["device_id"])
+            
+            if d1 and d2:
+                from Devices.link import Link
+                link = Link(d1, link_data["interface1"]["port"], d2, link_data["interface2"]["port"], link_data["cable_type"])
+                link.from_dict(link_data)
+                self.links.append(link)
+
+                if link.cable_type == "Console":
+                    laptop = d1 if d1.type == "Laptop" else d2
+                    target = d2 if d1.type == "Laptop" else d1
+                    if hasattr(laptop, 'connect_serial'):
+                        laptop.connect_serial(target)
+
+                node1 = self.get_node_by_device(d1)
+                node2 = self.get_node_by_device(d2)
+                
+                if node1 and node2:
+                    cable = CableNode(node1, node2, link.cable_type)
+                    self.scene.addItem(cable)
+
     def get_node_by_device(self, device):
         for item in self.scene.items():
             if isinstance(item, DeviceNode) and item.device == device:
