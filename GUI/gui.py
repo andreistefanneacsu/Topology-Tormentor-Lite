@@ -1,9 +1,11 @@
 import sys
 import json
-from PyQt6.QtWidgets import QApplication, QMainWindow, QToolBar, QStatusBar, QFileDialog
+from PyQt6.QtWidgets import (QApplication, QMainWindow, QToolBar, QStatusBar, 
+                             QFileDialog, QWidget, QHBoxLayout, QDockWidget)
 from PyQt6.QtGui import QAction
 from PyQt6.QtCore import Qt
 from GUI.canvas import NetworkCanvas, DeviceNode, CableNode
+from GUI.ai_helper import NetworkAssistantWidget
 
 from Devices.pc import PC
 from Devices.laptop import Laptop
@@ -40,6 +42,16 @@ class MainWindow(QMainWindow):
         
         self._create_menus()
         self._create_toolbar()
+        self._setup_ai_dock()
+    def _setup_ai_dock(self):
+        self.ai_dock = QDockWidget("AI Topology Assistant", self)
+        self.ai_dock.setAllowedAreas(Qt.DockWidgetArea.LeftDockWidgetArea | Qt.DockWidgetArea.RightDockWidgetArea)
+        
+        self.ai_assistant = NetworkAssistantWidget(self.canvas)
+        self.ai_dock.setWidget(self.ai_assistant)
+        
+        self.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, self.ai_dock)
+        self.ai_dock.hide() 
 
     def _create_menus(self):
         menubar = self.menuBar()
@@ -71,6 +83,21 @@ class MainWindow(QMainWindow):
             action.triggered.connect(lambda checked, c=cable: self.canvas.set_mode('cable', c))
             toolbar.addAction(action)
 
+        toolbar.addSeparator()
+
+        ai_toggle_act = QAction("Ask AI", self)
+        ai_toggle_act.triggered.connect(self.toggle_ai_dock)
+        ai_toggle_act.setCheckable(True)
+        self.ai_toggle_action = ai_toggle_act
+        toolbar.addAction(ai_toggle_act)
+
+    def toggle_ai_dock(self):
+        if self.ai_dock.isVisible():
+            self.ai_dock.hide()
+        else:
+            self.ai_dock.show()
+            self.ai_dock.raise_()
+
     def save_topology(self):
         filename, _ = QFileDialog.getSaveFileName(self, "Save Topology", "", "JSON Files (*.json)")
         if not filename: return
@@ -96,45 +123,5 @@ class MainWindow(QMainWindow):
         with open(filename, 'r') as f:
             data = json.load(f)
 
-        self.canvas.clear_canvas()
-
-        dev_classes = {"PC": PC, "Laptop": Laptop, "Server": Server, "Router": Router2911, "Switch": Switch2960, "WirelessRouter": WirelessRouter}
-
-        id_to_device = {}
-
-        for dev_data in data.get("devices", []):
-            dtype = dev_data.get("type")
-            if dtype in dev_classes:
-                backend_dev = dev_classes[dtype](dev_data.get("name"))
-                backend_dev.from_dict(dev_data)
-                
-                self.canvas.devices.append(backend_dev)
-                id_to_device[backend_dev.id] = backend_dev
-                
-                node = DeviceNode(backend_dev, self.canvas)
-                node.setPos(backend_dev._x, backend_dev._y)
-                self.canvas.scene.addItem(node)
-
-        for link_data in data.get("links", []):
-            d1 = id_to_device.get(link_data["interface1"]["device_id"])
-            d2 = id_to_device.get(link_data["interface2"]["device_id"])
-            
-            if d1 and d2:
-                link = Link(d1, link_data["interface1"]["port"], d2, link_data["interface2"]["port"], link_data["cable_type"])
-                link.from_dict(link_data)
-                self.canvas.links.append(link)
-
-                if link.cable_type == "Console":
-                    laptop = d1 if d1.type == "Laptop" else d2
-                    target = d2 if d1.type == "Laptop" else d1
-                    if hasattr(laptop, 'connect_serial'):
-                        laptop.connect_serial(target)
-
-                node1 = self.canvas.get_node_by_device(d1)
-                node2 = self.canvas.get_node_by_device(d2)
-                
-                if node1 and node2:
-                    cable = CableNode(node1, node2, link.cable_type)
-                    self.canvas.scene.addItem(cable)
-
+        self.canvas.import_topology(data)
         self.status.showMessage("Topology loaded successfully.")
