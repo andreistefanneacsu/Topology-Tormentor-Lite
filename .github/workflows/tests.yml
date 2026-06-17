@@ -30,7 +30,7 @@ jobs:
     - name: Install Python dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install pytest pytest-qt PyQt6 requests pydantic
+        pip install -r requirements.txt
 
     - name: Install the local project
       run: pip install -e .
