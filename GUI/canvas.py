@@ -13,6 +13,7 @@ from Devices.wireless_router import WirelessRouter
 from Devices.interface import Interface
 from Devices.link import Link
 from GUI.desktop import DesktopEnvironment
+from GUI.device_window import DeviceWindow
 from GUI.cli_app import CLIWidget
 
 class CableNode(QGraphicsPathItem):
@@ -48,6 +49,26 @@ class CableNode(QGraphicsPathItem):
             control_x = (start.x() + end.x()) / 2
             control_y = min(start.y(), end.y()) - 120 
             path.quadTo(QPointF(control_x, control_y), end)
+        elif self.cable_type == "Serial":
+            pen.setColor(QColor("#F38BA8"))
+            mid1 = QPointF(start.x() + (end.x() - start.x()) / 3, start.y() + (end.y() - start.y()) / 3)
+            mid2 = QPointF(start.x() + 2 * (end.x() - start.x()) / 3, start.y() + 2 * (end.y() - start.y()) / 3)
+            dx = end.x() - start.x()
+            dy = end.y() - start.y()
+            length = (dx**2 + dy**2)**0.5
+            if length > 0:
+                nx = -dy / length
+                ny = dx / length
+                offset = 15
+                mid1.setX(mid1.x() + nx * offset)
+                mid1.setY(mid1.y() + ny * offset)
+                mid2.setX(mid2.x() - nx * offset)
+                mid2.setY(mid2.y() - ny * offset)
+                path.lineTo(mid1)
+                path.lineTo(mid2)
+                path.lineTo(end)
+            else:
+                path.lineTo(end)
         elif self.cable_type == "Wireless":
             pen.setColor(QColor("#89DCEB"))
             pen.setStyle(Qt.PenStyle.DashDotLine)
@@ -175,22 +196,11 @@ class DeviceNode(QGraphicsItem):
 
     def mouseDoubleClickEvent(self, event):
         if self.canvas.current_mode == 'select':
-            if self.device.type in ["PC", "Laptop", "Server"]:
-                self.os_window = DesktopEnvironment(self.device, self.canvas)
-                self.os_window.show()
-            elif self.device.type == "WirelessRouter":
+            if self.device.type == "WirelessRouter":
                 pass  # Configured via Web Browser from PC
             else:
-                
-                from PyQt6.QtWidgets import QDialog, QVBoxLayout
-                dlg = QDialog()
-                dlg.setWindowTitle(f"CLI - {self.device.name}")
-                dlg.resize(650, 450)
-                lay = QVBoxLayout(dlg)
-                lay.setContentsMargins(0,0,0,0)
-                cli = CLIWidget(self.device)
-                lay.addWidget(cli)
-                dlg.exec()
+                self.os_window = DeviceWindow(self.device, self.canvas)
+                self.os_window.show()
         super().mouseDoubleClickEvent(event)
 
 class NetworkCanvas(QGraphicsView):
@@ -386,8 +396,9 @@ class NetworkCanvas(QGraphicsView):
             if self._is_port_available(node.device, name):
                 if self.selected_item_type == "Console" and intf.is_console:
                     valid_ports.append(name)
-                elif self.selected_item_type in ["Straight-Through", "Cross-Over"] and not intf.is_console:
-                    valid_ports.append(name)
+                elif self.selected_item_type in ["Straight-Through", "Cross-Over", "Serial"] and not intf.is_console:
+                    if name.lower() != 'vlan1':
+                        valid_ports.append(name)
 
         if not valid_ports:
             QMessageBox.warning(self, "Port Error", "No compatible free ports for this cable.")

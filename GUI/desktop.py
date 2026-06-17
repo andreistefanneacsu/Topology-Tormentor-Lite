@@ -21,7 +21,7 @@ class DesktopEnvironment(QMainWindow):
         self.device = device
         self.canvas = canvas
         self.setWindowTitle(f"Windows XP - {self.device.name}")
-        self.resize(1024, 768)
+        self.setMinimumSize(600, 400)
 
         main_widget = QWidget()
         self.setCentralWidget(main_widget)
@@ -30,19 +30,7 @@ class DesktopEnvironment(QMainWindow):
         layout.setSpacing(0)
 
         self.mdi = QMdiArea()
-        
-        bg_path = os.path.join("GUI", "bg.jpg")
-        
-        if os.path.exists(bg_path):
-            pixmap = QPixmap(bg_path).scaled(
-                1024, 768, 
-                Qt.AspectRatioMode.KeepAspectRatioByExpanding, 
-                Qt.TransformationMode.SmoothTransformation
-            )
-            self.mdi.setBackground(QBrush(pixmap))
-        else:
-            self.mdi.setBackground(QBrush(QColor("#245EDC")))
-            
+        self.mdi.setBackground(QBrush(QColor("#245EDC")))
         layout.addWidget(self.mdi)
 
         self.taskbar = QWidget()
@@ -169,6 +157,14 @@ class DesktopEnvironment(QMainWindow):
                 y = 20; x += 100
 
     def launch_app(self, app_data):
+        app_name = app_data["name"].replace("\n", " ")
+        if app_name in ["IP Config", "Email", "Services", "WiFi App"]:
+            for sub in self.mdi.subWindowList():
+                if sub.windowTitle() == app_name:
+                    self.mdi.setActiveSubWindow(sub)
+                    sub.showNormal()
+                    sub.raise_()
+                    return
         widget = app_data["factory"]()
         sub = self.mdi.addSubWindow(widget)
         sub.setWindowTitle(app_data["name"].replace("\n", " ")) 
@@ -185,3 +181,21 @@ class DesktopEnvironment(QMainWindow):
         btn.clicked.connect(lambda: self.mdi.setActiveSubWindow(sub))
         self.window_buttons_layout.addWidget(btn)
         sub.destroyed.connect(lambda: btn.deleteLater())
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        from PyQt6.QtCore import QTimer
+        QTimer.singleShot(10, self.update_bg)
+
+    def update_bg(self):
+        from PyQt6.QtGui import QPixmap, QBrush
+        from PyQt6.QtCore import Qt
+        import os
+        bg_path = os.path.join("GUI", "bg.jpg")
+        if os.path.exists(bg_path) and hasattr(self, 'mdi') and self.mdi.size().width() > 0:
+            pixmap = QPixmap(bg_path).scaled(
+                self.mdi.size(), 
+                Qt.AspectRatioMode.KeepAspectRatioByExpanding, 
+                Qt.TransformationMode.SmoothTransformation
+            )
+            self.mdi.setBackground(QBrush(pixmap))

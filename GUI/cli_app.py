@@ -15,12 +15,13 @@ class CLIWidget(QWidget):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(0)
         
-        if not self.target or self.target == self.device:
-            err = QTextEdit()
-            err.setStyleSheet("background-color: black; color: red; font-family: Consolas; font-size: 14px; padding: 10px;")
-            err.setText("FATAL ERROR: No active console connection detected.\n\nPlease attach a Console cable from the Laptop's RS232 port to a Router or Switch Console port.")
-            layout.addWidget(err)
-            return
+        if self.device.type not in ["Router", "Switch"]:
+            if not self.target or self.target == self.device:
+                err = QTextEdit()
+                err.setStyleSheet("background-color: black; color: red; font-family: Consolas; font-size: 14px; padding: 10px;")
+                err.setText("FATAL ERROR: No active console connection detected.\n\nPlease attach a Console cable from the Laptop's RS232 port to a Router or Switch Console port.")
+                layout.addWidget(err)
+                return
 
         self.terminal = TerminalEdit(self.execute_command)
         self.terminal.setStyleSheet("background-color: #000000; color: #00FF00; font-family: Consolas; font-size: 14px; border: none;")

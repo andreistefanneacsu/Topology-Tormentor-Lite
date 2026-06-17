@@ -113,9 +113,32 @@ class NetworkSimulator:
             
         if not next_hop_ip and curr_dev.type in ("Router", "WirelessRouter"):
             for route in curr_dev.config.get("routes", []):
-                if self._is_in_subnet(target_ip, route["network"], route["mask"]):
-                    next_hop_ip = route["next_hop"]
-                    out_intf = self._get_out_interface(curr_dev, next_hop_ip)
+                net = route.get("network", "")
+                mask = route.get("mask", "")
+                next_hop = route.get("next_hop", "")
+                
+                if "via" in route:
+                    next_hop = route["via"]
+                    if "/" in net:
+                        try:
+                            import ipaddress
+                            n = ipaddress.IPv4Network(net, strict=False)
+                            net = str(n.network_address)
+                            mask = str(n.netmask)
+                        except Exception:
+                            pass
+                            
+                if self._is_in_subnet(target_ip, net, mask):
+                    resolved_hop = curr_dev._resolve_interface([next_hop]) if hasattr(curr_dev, '_resolve_interface') else next_hop
+                    if not resolved_hop:
+                        resolved_hop = next_hop
+
+                    if resolved_hop in curr_dev.interfaces:
+                        out_intf = resolved_hop
+                        next_hop_ip = target_ip
+                    else:
+                        next_hop_ip = next_hop
+                        out_intf = self._get_out_interface(curr_dev, next_hop_ip)
                     break
                     
         if not next_hop_ip:
@@ -128,7 +151,12 @@ class NetworkSimulator:
             if curr_dev.type in ("Host", "PC", "Laptop"):
                 return False, f"Destination host unreachable.", None, source_ip
             else:
-                fallback_ip = getattr(curr_dev.interfaces[out_intf or list(curr_dev.interfaces.keys())[0]], 'ip', 'unknown')
+                fallback_ip = 'unknown'
+                for intf in curr_dev.interfaces.values():
+                    ip_val = getattr(intf, 'ip', '')
+                    if ip_val:
+                        fallback_ip = ip_val
+                        break
                 return False, f"Reply from {fallback_ip}: Destination net unreachable.", None, source_ip
 
         if not source_ip:
