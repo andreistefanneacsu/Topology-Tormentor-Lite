@@ -15,7 +15,11 @@ class EmailClientWidget(QWidget):
         layout = QVBoxLayout(self)
         
         self.tabs = QTabWidget()
-        self.tabs.setStyleSheet("QTabWidget::pane { border: 1px solid #7F9DB9; }")
+        self.tabs.setStyleSheet("""
+            QTabWidget::pane { background-color: #F0F0F0; border: 1px solid #A0A0A0; }
+            QTabBar::tab { background-color: #E0E0E0; color: #000000; padding: 6px 12px; border: 1px solid #A0A0A0; }
+            QTabBar::tab:selected { background-color: #FFFFFF; font-weight: bold; }
+        """)
         
         self.setup_config_tab()
         self.setup_compose_tab()
