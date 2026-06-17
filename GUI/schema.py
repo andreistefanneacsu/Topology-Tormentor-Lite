@@ -65,4 +65,4 @@ class TopologyModel(BaseModel):
         if len(visited) != len(self.devices):
             raise ValueError(f"Topology is disconnected: only {len(visited)}/{len(self.devices)} reachable")
 
-        return self
+        return self
