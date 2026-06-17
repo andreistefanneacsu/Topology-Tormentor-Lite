@@ -1,5 +1,5 @@
 import ipaddress
-from pydantic import BaseModel, model_validator
+from pydantic import BaseModel, model_validator, field_validator
 from typing import List, Dict, Optional
 
 VALID_PORTS = {
@@ -17,22 +17,22 @@ class DeviceModel(BaseModel):
     gateway: Optional[str] = None
     dhcp: Optional[Dict] = None
 
-    @model_validator(mode="after")
-    def validate_ports_and_ips(self):
-        if not self.interfaces:
-            return self
+    @field_validator("interfaces")
+    def validate_ports_and_ips(cls, v, info):
+        if not v:
+            return v
             
-        dev_type = self.type
+        dev_type = info.data.get("type", "Unknown")
         allowed = VALID_PORTS.get(dev_type, [])
 
-        for port, cidr in self.interfaces.items():
+        for port, cidr in v.items():
             if port not in allowed:
                 raise ValueError(f"{dev_type} cannot use port {port}")
             try:
                 ipaddress.IPv4Interface(cidr)
             except ValueError:
                 raise ValueError(f"Invalid IP/Subnet format on port {port}: {cidr}")
-        return self
+        return v
 
 class TopologyModel(BaseModel):
     devices: List[DeviceModel]
@@ -65,4 +65,4 @@ class TopologyModel(BaseModel):
         if len(visited) != len(self.devices):
             raise ValueError(f"Topology is disconnected: only {len(visited)}/{len(self.devices)} reachable")
 
-        return self
+        return self

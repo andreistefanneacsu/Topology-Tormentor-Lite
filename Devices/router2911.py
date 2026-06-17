@@ -9,10 +9,6 @@ class Router2911(Device):
             n = f"gigabitEthernet 0/{i}"
             self.interfaces[n] = Interface(n)
 
-        for i in range(2):
-            n = f"serial 0/{i}/0"
-            self.interfaces[n] = Interface(n)
-
         if "dhcp_pools" not in self.config: 
             self.config["dhcp_pools"] = {}
         if "dhcp_excluded" not in self.config: 

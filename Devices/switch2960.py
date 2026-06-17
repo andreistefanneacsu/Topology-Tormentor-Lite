@@ -32,7 +32,7 @@ class Switch2960(Device):
                     start, end = int(start_end[0]), int(start_end[1])
                     self.current_range = [f"{prefix} 0/{i}" for i in range(start, end + 1)]
                     self.cli_mode = 4
-                    return ""
+                    return f"{self.hostname}(config-if-range)#"
                 except:
                     return "% Incomplete command or invalid range."
 
@@ -40,12 +40,10 @@ class Switch2960(Device):
                 self.cli_mode = 4
                 self.current_interface = "Vlan1"
                 self.current_range = []
-                return ""
+                return f"{self.hostname}(config-if)#"
 
         if self.cli_mode == 4:
             if cmd_lower[0:2] == ["ip", "address"]:
-                if not is_no and len(action_parts) < 4:
-                    return "% Incomplete command.\n"
                 target = self.current_interface if not self.current_range else ""
                 if target == "Vlan1":
                     self.interfaces["Vlan1"].ip = "" if is_no else action_parts[2]
