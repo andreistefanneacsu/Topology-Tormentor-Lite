@@ -2,7 +2,8 @@ import os
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QFormLayout,
                              QLineEdit, QPushButton, QLabel, QListWidget,
                              QMessageBox, QStackedWidget, QListWidgetItem, QTableWidget,
-                             QTableWidgetItem, QHeaderView, QGroupBox, QCheckBox, QDialog)
+                             QTableWidgetItem, QHeaderView, QGroupBox, QCheckBox, QDialog,
+                             QPlainTextEdit)
 from PyQt6.QtCore import Qt, QSize
 from PyQt6.QtGui import QIcon
 
@@ -536,6 +537,140 @@ class DhcpServerWidget(QWidget):
         self.server.release_ip(dev_id)
         self.refresh_leases()
 
+class WebServerWidget(QWidget):
+    def __init__(self, host_device):
+        super().__init__()
+        self.server = host_device
+
+        self.setStyleSheet(_WIDGET)
+
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+
+        title = QLabel("Web Server - File Management")
+        title.setStyleSheet("font-weight: bold; font-size: 14px;")
+        layout.addWidget(title)
+
+        upload_group = QGroupBox("Upload File")
+        upload_group.setStyleSheet(_GROUP)
+        upload_layout = QVBoxLayout(upload_group)
+
+        form = QFormLayout()
+        form.setFieldGrowthPolicy(QFormLayout.FieldGrowthPolicy.ExpandingFieldsGrow)
+        self.filename_input = QLineEdit()
+        self.filename_input.setPlaceholderText("e.g. index.html")
+        self.filename_input.setStyleSheet(_FIELD)
+        form.addRow("Filename:", self.filename_input)
+        upload_layout.addLayout(form)
+
+        self.content_edit = QLineEdit()
+        self.content_edit.setStyleSheet(_FIELD)
+        self.content_edit.setPlaceholderText("Enter HTML content (single line) or use the multi-line editor below")
+        upload_layout.addWidget(self.content_edit)
+
+        self.content_multi = QPlainTextEdit()
+        self.content_multi.setPlaceholderText("Or paste multi-line HTML content here...")
+        self.content_multi.setStyleSheet("background-color: white; border: 1px solid #7F9DB9; font-family: monospace;")
+        self.content_multi.setMinimumHeight(180)
+        upload_layout.addWidget(self.content_multi)
+
+        btn_row = QHBoxLayout()
+        upload_btn = QPushButton("Upload File")
+        upload_btn.setStyleSheet(_BTN)
+        upload_btn.clicked.connect(self.upload_file)
+        btn_row.addWidget(upload_btn)
+        btn_row.addStretch()
+        upload_layout.addLayout(btn_row)
+        layout.addWidget(upload_group)
+
+        files_group = QGroupBox("Server Files")
+        files_group.setStyleSheet(_GROUP)
+        files_layout = QVBoxLayout(files_group)
+
+        self.files_table = QTableWidget(0, 2)
+        self.files_table.setHorizontalHeaderLabels(["Filename", "Size (bytes)"])
+        self.files_table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+        self.files_table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
+        self.files_table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
+        self.files_table.setStyleSheet("background-color: white; border: 1px solid #7F9DB9;")
+        self.files_table.itemSelectionChanged.connect(self._on_file_selected)
+        files_layout.addWidget(self.files_table)
+
+        file_btn_row = QHBoxLayout()
+        delete_btn = QPushButton("Delete Selected")
+        delete_btn.setStyleSheet(_BTN)
+        delete_btn.clicked.connect(self.delete_file)
+        refresh_btn = QPushButton("Refresh")
+        refresh_btn.setStyleSheet(_BTN)
+        refresh_btn.clicked.connect(self.refresh_files)
+        load_btn = QPushButton("Load into Editor")
+        load_btn.setStyleSheet(_BTN)
+        load_btn.clicked.connect(self.load_selected)
+        file_btn_row.addWidget(load_btn)
+        file_btn_row.addWidget(delete_btn)
+        file_btn_row.addWidget(refresh_btn)
+        file_btn_row.addStretch()
+        files_layout.addLayout(file_btn_row)
+        layout.addWidget(files_group)
+
+        self.refresh_files()
+
+    def upload_file(self):
+        filename = self.filename_input.text().strip()
+        if not filename:
+            QMessageBox.warning(self, "Error", "Filename cannot be empty.")
+            return
+
+        content = self.content_multi.toPlainText() or self.content_edit.text()
+        if not content:
+            QMessageBox.warning(self, "Error", "File content cannot be empty.")
+            return
+
+        self.server.add_file(filename, content)
+        self.filename_input.clear()
+        self.content_edit.clear()
+        self.content_multi.clear()
+        self.refresh_files()
+        QMessageBox.information(self, "Success", f"File '{filename}' uploaded.")
+
+    def delete_file(self):
+        row = self.files_table.currentRow()
+        if row < 0:
+            return
+        filename = self.files_table.item(row, 0).text()
+        self.server.remove_file(filename)
+        self.refresh_files()
+
+    def load_selected(self):
+        row = self.files_table.currentRow()
+        if row < 0:
+            return
+        filename = self.files_table.item(row, 0).text()
+        content = self.server.get_file(filename)
+        if content is not None:
+            self.filename_input.setText(filename)
+            lines = content.split("\n")
+            if len(lines) <= 1:
+                self.content_edit.setText(content)
+                self.content_multi.clear()
+            else:
+                self.content_multi.setPlainText(content)
+                self.content_edit.clear()
+
+    def _on_file_selected(self):
+        pass
+
+    def refresh_files(self):
+        self.files_table.setRowCount(0)
+        for filename in self.server.list_files():
+            content = self.server.get_file(filename)
+            size = len(content) if content else 0
+            row = self.files_table.rowCount()
+            self.files_table.insertRow(row)
+            self.files_table.setItem(row, 0, QTableWidgetItem(filename))
+            self.files_table.setItem(row, 1, QTableWidgetItem(str(size)))
+
+
 class ServicesWidget(QWidget):
     def __init__(self, host_device):
         super().__init__()
@@ -597,3 +732,8 @@ class ServicesWidget(QWidget):
         dhcp_item = QListWidgetItem("DHCP")
         self.service_list.addItem(dhcp_item)
         self.stacked_widget.addWidget(dhcp_widget)
+
+        web_widget = WebServerWidget(self.server)
+        web_item = QListWidgetItem("Web Server")
+        self.service_list.addItem(web_item)
+        self.stacked_widget.addWidget(web_widget)

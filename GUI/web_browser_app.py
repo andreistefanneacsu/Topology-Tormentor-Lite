@@ -1,7 +1,7 @@
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLineEdit, QPushButton, QLabel,
     QMessageBox, QGridLayout, QFrame, QTabWidget, QComboBox, QCheckBox,
-    QSizePolicy, QFormLayout
+    QSizePolicy, QFormLayout, QTextBrowser
 )
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QFont
@@ -132,10 +132,16 @@ class WebBrowserWidget(QWidget):
             if url.startswith(prefix):
                 url = url[len(prefix):]
 
-        target_ip = url
+        path = "/"
+        if "/" in url:
+            idx = url.index("/")
+            host_part = url[:idx]
+            path = url[idx:]
+        else:
+            host_part = url
 
         import re
-        if not re.match(r"^\d{1,3}(\.\d{1,3}){3}$", target_ip):
+        if not re.match(r"^\d{1,3}(\.\d{1,3}){3}$", host_part):
             dns_ip = self.host.config.get("dns-server", "")
             if not dns_ip:
                 self._show_error("Cannot resolve hostname: no DNS server configured.")
@@ -144,11 +150,13 @@ class WebBrowserWidget(QWidget):
             if not ok or dns_dev.type != "Server":
                 self._show_error("Cannot reach DNS server.")
                 return
-            resolved = dns_dev.resolve_dns(target_ip)
+            resolved = dns_dev.resolve_dns(host_part)
             if not resolved:
-                self._show_error(f"Could not resolve hostname: {target_ip}")
+                self._show_error(f"Could not resolve hostname: {host_part}")
                 return
             target_ip = resolved
+        else:
+            target_ip = host_part
 
         ok, msg, target_dev, _ = self.simulator._route_packet(self.host, target_ip)
 
@@ -160,6 +168,9 @@ class WebBrowserWidget(QWidget):
             self.current_router = target_dev
             self._logged_in = False
             self._show_login()
+        elif hasattr(target_dev, "serve_http"):
+            status, content_type, content = target_dev.serve_http(path)
+            self._show_html(content, status)
         else:
             self._show_error(
                 f"Connected to {target_dev.name}, but this device does not serve a web page."
@@ -185,6 +196,16 @@ class WebBrowserWidget(QWidget):
         lbl.setWordWrap(True)
         lbl.setStyleSheet("color:#c00; font-size:13px; margin:60px 30px;")
         self.content_layout.addWidget(lbl)
+
+    def _show_html(self, html, status=200):
+        self._clear()
+        browser = QTextBrowser()
+        browser.setHtml(html)
+        browser.setStyleSheet(
+            "background:#fff; color:#000; border:none; font-family:Tahoma,Arial,sans-serif; font-size:12px;"
+        )
+        browser.setOpenExternalLinks(False)
+        self.content_layout.addWidget(browser)
         
     def _show_login(self):
         self._clear()

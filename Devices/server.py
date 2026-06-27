@@ -20,6 +20,31 @@ class Server(Host):
         }
         self.dhcp_leases = {}
 
+        self.files = {}
+
+    def add_file(self, filename, content):
+        self.files[filename] = content
+
+    def get_file(self, filename):
+        return self.files.get(filename, None)
+
+    def list_files(self):
+        return list(self.files.keys())
+
+    def remove_file(self, filename):
+        return self.files.pop(filename, None)
+
+    def serve_http(self, path="/"):
+        if path in ("", "/"):
+            filename = "index.html"
+        else:
+            filename = path.lstrip("/")
+
+        content = self.files.get(filename, None)
+        if content is None:
+            return 404, "text/html", "<html><body><h1>404 Not Found</h1><p>The requested resource was not found on this server.</p></body></html>"
+        return 200, "text/html", content
+
     def receive_email(self, to_email, from_email, subject, body):
         if "@" not in to_email:
             return False, "Invalid to email address"
@@ -119,6 +144,7 @@ class Server(Host):
 
         data["services"] = self.services
         data["dhcp_leases"] = self.dhcp_leases
+        data["files"] = self.files
 
         return data
 
@@ -153,4 +179,5 @@ class Server(Host):
 
         self.email_users = data.get("email_users", self.email_users)
         self.dns_records = data.get("dns_records", self.dns_records)
+        self.files = data.get("files", self.files)
 
