@@ -1,7 +1,7 @@
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLineEdit, QPushButton, QLabel,
     QMessageBox, QGridLayout, QFrame, QTabWidget, QComboBox, QCheckBox,
-    QSizePolicy
+    QSizePolicy, QFormLayout
 )
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QFont
