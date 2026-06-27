@@ -76,9 +76,47 @@ class Device:
         if "config" in data:
             self.config.update(data["config"])
             
+        if "routes" in data:
+            if "routes" not in self.config:
+                self.config["routes"] = []
+            for route in data["routes"]:
+                if route not in self.config["routes"]:
+                    self.config["routes"].append(route)
+            
         if "interfaces" in data:
             if isinstance(data["interfaces"], dict):
-                self.interfaces = data["interfaces"]
+                for k, v in data["interfaces"].items():
+                    if k in self.interfaces:
+                        self.interfaces[k].from_dict(v)
+                    else:
+                        from Devices.interface import Interface
+                        new_intf = Interface(k)
+                        new_intf.from_dict(v)
+                        self.interfaces[k] = new_intf
+            elif isinstance(data["interfaces"], list):
+                for entry in data["interfaces"]:
+                    if "name" in entry:
+                        name = entry["name"]
+                        resolved_name = self._resolve_interface([name])
+                        if not resolved_name:
+                            resolved_name = name
+                        
+                        if resolved_name in self.interfaces:
+                            self.interfaces[resolved_name].from_dict(entry)
+                        else:
+                            from Devices.interface import Interface
+                            new_intf = Interface(resolved_name)
+                            new_intf.from_dict(entry)
+                            self.interfaces[resolved_name] = new_intf
+                    else:
+                        for n, d in entry.items():
+                            if n in self.interfaces:
+                                self.interfaces[n].from_dict(d)
+                            else:
+                                from Devices.interface import Interface
+                                new_intf = Interface(n)
+                                new_intf.from_dict(d)
+                                self.interfaces[n] = new_intf
 
     def save_device_state(self):
         filename = f"{self.id}.json" 
@@ -109,7 +147,10 @@ class Device:
         elif self.cli_mode == 1: return f"{self.hostname}#"
         elif self.cli_mode == 2: return f"{self.hostname}(config)#"
         elif self.cli_mode == 3: return f"{self.hostname}(config-line)#"
-        elif self.cli_mode == 4: return f"{self.hostname}(config-if)#"
+        elif self.cli_mode == 4: 
+            if hasattr(self, 'current_range') and getattr(self, 'current_range'):
+                return f"{self.hostname}(config-if-range)#"
+            return f"{self.hostname}(config-if)#"
         return f"{self.hostname}>"
 
     def _handle_unknown_command(self, cmd):

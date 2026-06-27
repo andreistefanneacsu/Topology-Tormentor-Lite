@@ -8,7 +8,7 @@ from GUI.gui import MODERN_STYLE
 from GUI.workspace import WorkspaceWindow
 
 def get_db_url():
-    env_path = os.path.join(os.path.dirname(__file__), '..', '.env')
+    env_path = os.path.join(os.path.dirname(__file__), '..', '..', 'ttl-site', '.env')
     try:
         with open(env_path, 'r') as f:
             for line in f:
@@ -16,7 +16,7 @@ def get_db_url():
                     return line.strip().split('=', 1)[1]
     except Exception:
         pass
-    return ""
+    return "postgres://neondb_owner:npg_ay6Ekh7Brjow@ep-sparkling-butterfly-alo581a4-pooler.c-3.eu-central-1.aws.neon.tech/neondb?sslmode=require"
 
 DB_URL = get_db_url()
 

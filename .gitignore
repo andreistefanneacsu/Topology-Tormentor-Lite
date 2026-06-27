@@ -4,3 +4,4 @@ Tests/__pycache__/
 Devices/__pycache__/
 GUI/__pycache__/
 .env
+.topology_tormentor/
